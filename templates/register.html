@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - TouristGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md">
+        <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Create Your Account</h2>
+        <form id="register-form" class="space-y-6">
+            <input type="text" id="name" placeholder="Full Name" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
+            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
+            <input type="number" id="duration" placeholder="Duration of Visit (Days)" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
+            <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 rounded-lg transition duration-300">Register</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('name').value;
+            const kyc_id = document.getElementById('kyc_id').value;
+            const duration = document.getElementById('duration').value;
+
+            const response = await fetch('/api/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name,
+                    kyc_id: kyc_id,
+                    kyc_type: 'Aadhaar', // Simplified
+                    visit_duration_days: parseInt(duration),
+                    // Dummy data for hackathon simplicity
+                    itinerary: [],
+                    emergency_contacts: []
+                })
+            });
+
+            if (response.ok) {
+                window.location.href = '/user_dashboard'; // Redirect on success
+            } else {
+                const error = await response.json();
+                alert(`Registration failed: ${error.error}`);
+            }
+        });
+    </script>
+</body>
+</html>

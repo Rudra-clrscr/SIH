@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - TouristGuard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
+    <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-sm">
+        <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Welcome Back</h2>
+        <form id="login-form" class="space-y-6">
+            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
+            <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 rounded-lg transition duration-300">Login</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const kyc_id = document.getElementById('kyc_id').value;
+
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ kyc_id: kyc_id })
+            });
+
+            if (response.ok) {
+                window.location.href = '/user_dashboard';
+            } else {
+                alert('Login failed. Please check your KYC ID.');
+            }
+        });
+    </script>
+</body>
+</html>
