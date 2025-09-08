@@ -20,7 +20,7 @@ db.init_app(app)
 # Initialize SocketIO
 socketio = SocketIO(app)
 
-# A temporary storage for OTPs. In a production app, use a secure, temporary cache like Redis.
+# A temporary storage for OTPs. In a production app, use a secure, temporary cache like Firebase or Redis.
 sent_otps = {}
 
 # --- Web Page Routes ---
@@ -55,34 +55,54 @@ def authorities_dashboard():
 
 # --- API Endpoints ---
 
-@app.route('/api/send_otp', methods=['POST'])
-def send_otp():
-    """Generates and 'sends' an OTP to the user's phone number."""
+@app.route('/api/send_otp_firebase', methods=['POST'])
+def send_otp_firebase():
+    """Simulates sending an OTP via a Firebase Admin SDK call."""
     data = request.json
     phone = data.get('phone')
 
     if not phone:
         return jsonify({'error': 'Phone number is required'}), 400
+
+    # In a real application, you would use Firebase Admin SDK here.
+    # from firebase_admin.auth import create_custom_token
+    # token = create_custom_token(uid)
     
-    # Check if a tourist with this phone number already exists
-    if Tourist.query.filter_by(phone=phone).first():
-        return jsonify({'error': 'A tourist with this phone number is already registered'}), 409
+    # For this simulation, we'll generate a dummy token.
+    dummy_token = f"dummy-token-{random.randint(1000, 9999)}"
+    
+    print(f"DEBUG: Simulating Firebase OTP send. Dummy token '{dummy_token}' for phone number {phone}")
+    
+    return jsonify({'message': 'OTP sent successfully', 'token': dummy_token}), 200
 
-    # Generate a 6-digit OTP
-    otp = str(random.randint(100000, 999999))
-    sent_otps[phone] = otp
-    print(f"DEBUG: Sent OTP '{otp}' to phone number {phone}") # Log to console for demonstration
+@app.route('/api/verify_otp_firebase', methods=['POST'])
+def verify_otp_firebase():
+    """Verifies the OTP and token from the client-side."""
+    data = request.json
+    phone = data.get('phone')
+    otp = data.get('otp')
+    token = data.get('token')
+    
+    if not all([phone, otp, token]):
+        return jsonify({'error': 'Missing phone, otp, or token'}), 400
 
-    return jsonify({'message': 'OTP sent successfully'}), 200
+    # In a real application, you would verify the token with Firebase here.
+    # from firebase_admin import auth
+    # user = auth.verify_id_token(token)
+    
+    # For this simulation, any valid-looking data is accepted.
+    if token.startswith('dummy-token-') and len(otp) == 6:
+        return jsonify({'message': 'OTP verified successfully'}), 200
+    else:
+        return jsonify({'error': 'Invalid OTP or token'}), 401
 
 @app.route('/api/register', methods=['POST'])
 def register_tourist():
-    """Handles tourist registration, but now requires OTP verification."""
+    """Handles tourist registration after OTP verification."""
     data = request.json
     if not all(k in data for k in ['name', 'kyc_type', 'kyc_id', 'phone', 'visit_duration_days']):
         return jsonify({'error': 'Missing required fields for registration'}), 400
     
-    # Check for existing users based on KYC and phone number
     if Tourist.query.filter_by(kyc_id=data['kyc_id']).first():
         return jsonify({'error': 'A tourist with this KYC ID is already registered'}), 409
     if Tourist.query.filter_by(phone=data['phone']).first():
@@ -96,24 +116,6 @@ def register_tourist():
     db.session.commit()
     session['tourist_id'] = new_tourist.id
     return jsonify({'message': 'Tourist registered successfully', 'tourist_id': new_tourist.id}), 201
-
-@app.route('/api/verify_otp', methods=['POST'])
-def verify_otp():
-    """Verifies the OTP submitted by the user."""
-    data = request.json
-    phone = data.get('phone')
-    otp = data.get('otp')
-
-    if not phone or not otp:
-        return jsonify({'error': 'Phone and OTP are required'}), 400
-
-    if phone in sent_otps and sent_otps[phone] == otp:
-        del sent_otps[phone] # OTP is used, so remove it from temporary storage
-        # Here we would normally redirect or mark the user as verified.
-        # Since registration is now a two-step process, we can now proceed.
-        return jsonify({'message': 'OTP verified successfully'}), 200
-    else:
-        return jsonify({'error': 'Invalid OTP'}), 401
 
 @app.route('/api/login', methods=['POST'])
 def login_api():
