@@ -2,7 +2,6 @@ import os
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import datetime, timedelta
 from database import db, Tourist, Itinerary, EmergencyContact, Alert
-# flask_socketio is imported but not used, can be removed if not needed later
 from flask_socketio import SocketIO, join_room, leave_room, emit
 
 # Initialize Flask App
@@ -16,6 +15,9 @@ app.config['SECRET_KEY'] = 'your-super-secret-key-for-hackathon' # Needed for se
 
 # Initialize DB with app
 db.init_app(app)
+
+# Initialize SocketIO
+socketio = SocketIO(app)
 
 # --- Web Page Routes ---
 
