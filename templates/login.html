@@ -5,31 +5,176 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - TouristGuard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
-    <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-sm">
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <!-- Login Form Container -->
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-700">
         <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Welcome Back</h2>
-        <form id="login-form" class="space-y-6">
-            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
-            <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 rounded-lg transition duration-300">Login</button>
+        
+        <div class="flex space-x-2 mb-6">
+            <button id="kyc-toggle" class="flex-1 bg-cyan-600 text-white font-bold py-2 rounded-lg transition duration-300">KYC ID</button>
+            <button id="phone-toggle" class="flex-1 bg-gray-700 text-gray-400 font-bold py-2 rounded-lg transition duration-300">Phone</button>
+        </div>
+
+        <!-- KYC ID Login Form (Default) -->
+        <form id="kyc-login-form" class="space-y-6">
+            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Login with KYC ID</button>
         </form>
+
+        <!-- Phone Number Login Form (Hidden by default) -->
+        <div id="phone-login-container" class="hidden">
+            <form id="phone-form-step" class="space-y-6">
+                <input type="tel" id="phone_login" placeholder="Phone Number" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+                <button type="submit" id="send-otp-button" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Send OTP</button>
+            </form>
+
+            <form id="otp-verification-step" class="space-y-6 hidden">
+                <p class="text-sm text-center text-gray-400">An OTP has been sent. Please enter it below.</p>
+                <input type="text" id="otp" placeholder="Enter OTP" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 text-center tracking-widest focus:outline-none focus:border-cyan-500 transition duration-300">
+                <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Verify & Login</button>
+            </form>
+        </div>
+
+        <div class="mt-4 text-center text-sm text-gray-400">
+            Don't have an account? <a href="/register" class="text-cyan-400 hover:underline">Register here</a>
+        </div>
+        <div class="mt-4 text-center text-sm text-gray-400">
+            <a href="/" class="text-cyan-400 hover:underline">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Alerts -->
+    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
+            <h3 class="text-xl font-bold mb-4">Login</h3>
+            <p id="alert-message" class="text-gray-300 mb-6"></p>
+            <button onclick="closeAlertModal()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
+        </div>
     </div>
 
     <script>
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
+        const kycLoginForm = document.getElementById('kyc-login-form');
+        const phoneLoginContainer = document.getElementById('phone-login-container');
+        const kycToggle = document.getElementById('kyc-toggle');
+        const phoneToggle = document.getElementById('phone-toggle');
+        const phoneFormStep = document.getElementById('phone-form-step');
+        const otpVerificationStep = document.getElementById('otp-verification-step');
+        let userData = {};
+
+        // Modal functions
+        function showAlertModal(message, title = 'Login') {
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('alert-modal').style.display = 'flex';
+            document.querySelector('#alert-modal h3').innerText = title;
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
+
+        // Toggle between KYC and Phone login
+        kycToggle.addEventListener('click', () => {
+            kycLoginForm.classList.remove('hidden');
+            phoneLoginContainer.classList.add('hidden');
+            kycToggle.classList.replace('bg-gray-700', 'bg-cyan-600');
+            kycToggle.classList.replace('text-gray-400', 'text-white');
+            phoneToggle.classList.replace('bg-cyan-600', 'bg-gray-700');
+            phoneToggle.classList.replace('text-white', 'text-gray-400');
+        });
+
+        phoneToggle.addEventListener('click', () => {
+            kycLoginForm.classList.add('hidden');
+            phoneLoginContainer.classList.remove('hidden');
+            phoneToggle.classList.replace('bg-gray-700', 'bg-cyan-600');
+            phoneToggle.classList.replace('text-gray-400', 'text-white');
+            kycToggle.classList.replace('bg-cyan-600', 'bg-gray-700');
+            kycToggle.classList.replace('text-white', 'text-gray-400');
+        });
+
+        // KYC Login
+        kycLoginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const kyc_id = document.getElementById('kyc_id').value;
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ kyc_id: kyc_id })
+                });
+                if (response.ok) {
+                    window.location.href = '/user_dashboard';
+                } else {
+                    const error = await response.json();
+                    showAlertModal(`Login failed: ${error.error}`);
+                }
+            } catch (error) {
+                showAlertModal('An error occurred. Please try again.');
+            }
+        });
 
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ kyc_id: kyc_id })
-            });
+        // Phone Login - Step 1: Send OTP
+        phoneFormStep.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const phone = document.getElementById('phone_login').value;
+            userData.phone = phone;
 
-            if (response.ok) {
-                window.location.href = '/user_dashboard';
-            } else {
-                alert('Login failed. Please check your KYC ID.');
+            try {
+                const response = await fetch('/api/send_otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone: userData.phone })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    phoneFormStep.classList.add('hidden');
+                    otpVerificationStep.classList.remove('hidden');
+                    showAlertModal("An OTP has been sent to your phone. Please check the server console.", "OTP Sent");
+                } else {
+                    showAlertModal(result.error || "Failed to send OTP. Please try again.", "Error");
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlertModal("An error occurred. Please try again later.", "Error");
+            }
+        });
+
+        // Phone Login - Step 2: Verify OTP and Login
+        otpVerificationStep.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const otp = document.getElementById('otp').value;
+            try {
+                const verificationResponse = await fetch('/api/verify_otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone: userData.phone, otp: otp })
+                });
+
+                const verificationResult = await verificationResponse.json();
+                if (verificationResponse.ok) {
+                    // If OTP is correct, proceed with the login
+                    const loginResponse = await fetch('/api/login_phone', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ phone: userData.phone })
+                    });
+                    if (loginResponse.ok) {
+                        window.location.href = '/user_dashboard';
+                    } else {
+                        const loginError = await loginResponse.json();
+                        showAlertModal(loginError.error, "Login Failed");
+                    }
+                } else {
+                    showAlertModal(verificationResult.error || "Invalid OTP. Please try again.", "OTP Verification Failed");
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlertModal("An error occurred during verification. Please try again.", "Error");
             }
         });
     </script>

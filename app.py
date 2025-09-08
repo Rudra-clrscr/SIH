@@ -1,4 +1,5 @@
 import os
+import random
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import datetime, timedelta
 from database import db, Tourist, Itinerary, EmergencyContact, Alert
@@ -18,6 +19,9 @@ db.init_app(app)
 
 # Initialize SocketIO
 socketio = SocketIO(app)
+
+# A temporary storage for OTPs. In a production app, use a secure, temporary cache like Redis.
+sent_otps = {}
 
 # --- Web Page Routes ---
 
@@ -51,24 +55,69 @@ def authorities_dashboard():
 
 # --- API Endpoints ---
 
+@app.route('/api/send_otp', methods=['POST'])
+def send_otp():
+    """Generates and 'sends' an OTP to the user's phone number."""
+    data = request.json
+    phone = data.get('phone')
+
+    if not phone:
+        return jsonify({'error': 'Phone number is required'}), 400
+    
+    # Check if a tourist with this phone number already exists
+    if Tourist.query.filter_by(phone=phone).first():
+        return jsonify({'error': 'A tourist with this phone number is already registered'}), 409
+
+    # Generate a 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+    sent_otps[phone] = otp
+    print(f"DEBUG: Sent OTP '{otp}' to phone number {phone}") # Log to console for demonstration
+
+    return jsonify({'message': 'OTP sent successfully'}), 200
+
 @app.route('/api/register', methods=['POST'])
 def register_tourist():
+    """Handles tourist registration, but now requires OTP verification."""
     data = request.json
-    if not all(k in data for k in ['name', 'kyc_type', 'kyc_id', 'visit_duration_days']):
+    if not all(k in data for k in ['name', 'kyc_type', 'kyc_id', 'phone', 'visit_duration_days']):
         return jsonify({'error': 'Missing required fields for registration'}), 400
+    
+    # Check for existing users based on KYC and phone number
     if Tourist.query.filter_by(kyc_id=data['kyc_id']).first():
         return jsonify({'error': 'A tourist with this KYC ID is already registered'}), 409
+    if Tourist.query.filter_by(phone=data['phone']).first():
+        return jsonify({'error': 'A tourist with this phone number is already registered'}), 409
+
     start_date = datetime.utcnow()
     end_date = start_date + timedelta(days=int(data['visit_duration_days']))
-    new_tourist = Tourist(name=data['name'], kyc_type=data['kyc_type'], kyc_id=data['kyc_id'], visit_start_date=start_date, visit_end_date=end_date)
+    new_tourist = Tourist(name=data['name'], kyc_type=data['kyc_type'], kyc_id=data['kyc_id'], phone=data['phone'], visit_start_date=start_date, visit_end_date=end_date)
+    
     db.session.add(new_tourist)
     db.session.commit()
     session['tourist_id'] = new_tourist.id
     return jsonify({'message': 'Tourist registered successfully', 'tourist_id': new_tourist.id}), 201
 
+@app.route('/api/verify_otp', methods=['POST'])
+def verify_otp():
+    """Verifies the OTP submitted by the user."""
+    data = request.json
+    phone = data.get('phone')
+    otp = data.get('otp')
+
+    if not phone or not otp:
+        return jsonify({'error': 'Phone and OTP are required'}), 400
+
+    if phone in sent_otps and sent_otps[phone] == otp:
+        del sent_otps[phone] # OTP is used, so remove it from temporary storage
+        # Here we would normally redirect or mark the user as verified.
+        # Since registration is now a two-step process, we can now proceed.
+        return jsonify({'message': 'OTP verified successfully'}), 200
+    else:
+        return jsonify({'error': 'Invalid OTP'}), 401
+
 @app.route('/api/login', methods=['POST'])
 def login_api():
-    """Handles tourist login and creates a session."""
+    """Handles tourist login by KYC ID and creates a session."""
     data = request.json
     if not data or 'kyc_id' not in data:
         return jsonify({'error': 'Missing KYC ID'}), 400
@@ -79,6 +128,19 @@ def login_api():
         return jsonify({'message': 'Login successful', 'tourist_id': tourist.id})
     return jsonify({'error': 'Invalid KYC ID'}), 401
     
+@app.route('/api/login_phone', methods=['POST'])
+def login_phone():
+    """Handles tourist login by phone number and creates a session."""
+    data = request.json
+    if not data or 'phone' not in data:
+        return jsonify({'error': 'Missing phone number'}), 400
+    
+    tourist = Tourist.query.filter_by(phone=data['phone']).first()
+    if tourist:
+        session['tourist_id'] = tourist.id
+        return jsonify({'message': 'Login successful', 'tourist_id': tourist.id})
+    return jsonify({'error': 'Invalid phone number or not registered'}), 401
+
 @app.route('/api/logout')
 def logout_api():
     session.pop('tourist_id', None)

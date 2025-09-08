@@ -5,44 +5,137 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - TouristGuard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
-    <div class="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md">
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <!-- Registration Form Container -->
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
         <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Create Your Account</h2>
-        <form id="register-form" class="space-y-6">
-            <input type="text" id="name" placeholder="Full Name" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
-            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
-            <input type="number" id="duration" placeholder="Duration of Visit (Days)" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500">
-            <button type="submit" class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 rounded-lg transition duration-300">Register</button>
+        
+        <!-- Step 1: Registration Form -->
+        <form id="register-form-step" class="space-y-6">
+            <input type="text" id="name" placeholder="Full Name" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <input type="tel" id="phone" placeholder="Phone Number" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <input type="number" id="duration" placeholder="Duration of Visit (Days)" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <button type="submit" id="send-otp-button" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Send OTP</button>
         </form>
+
+        <!-- Step 2: OTP Verification Form (initially hidden) -->
+        <form id="otp-verification-step" class="space-y-6 hidden">
+            <p class="text-sm text-center text-gray-400">An OTP has been sent to your phone. Please enter it below.</p>
+            <input type="text" id="otp" placeholder="Enter OTP" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 text-center tracking-widest focus:outline-none focus:border-cyan-500 transition duration-300">
+            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Verify & Register</button>
+        </form>
+
+        <div class="mt-4 text-center text-sm text-gray-400">
+            Already have an account? <a href="/login" class="text-cyan-400 hover:underline">Login here</a>
+        </div>
+        <div class="mt-4 text-center text-sm text-gray-400">
+            <a href="/" class="text-cyan-400 hover:underline">Back to Home</a>
+        </div>
+    </div>
+
+    <!-- Custom Modal for Alerts (replacing alert()) -->
+    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
+            <h3 class="text-xl font-bold mb-4">Registration</h3>
+            <p id="alert-message" class="text-gray-300 mb-6"></p>
+            <button onclick="closeAlertModal()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
+        </div>
     </div>
 
     <script>
-        document.getElementById('register-form').addEventListener('submit', async (e) => {
+        let userData = {}; // To store user data temporarily between steps
+
+        // Modal functions
+        function showAlertModal(message, title = 'Registration') {
+            document.getElementById('alert-message').innerText = message;
+            document.getElementById('alert-modal').style.display = 'flex';
+            document.querySelector('#alert-modal h3').innerText = title;
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
+
+        document.getElementById('register-form-step').addEventListener('submit', async (e) => {
             e.preventDefault();
             const name = document.getElementById('name').value;
             const kyc_id = document.getElementById('kyc_id').value;
+            const phone = document.getElementById('phone').value;
             const duration = document.getElementById('duration').value;
 
-            const response = await fetch('/api/register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    name: name,
-                    kyc_id: kyc_id,
-                    kyc_type: 'Aadhaar', // Simplified
-                    visit_duration_days: parseInt(duration),
-                    // Dummy data for hackathon simplicity
-                    itinerary: [],
-                    emergency_contacts: []
-                })
-            });
+            // Store user data
+            userData = {
+                name: name,
+                kyc_id: kyc_id,
+                kyc_type: 'Aadhaar',
+                phone: phone,
+                visit_duration_days: parseInt(duration),
+                itinerary: [],
+                emergency_contacts: []
+            };
 
-            if (response.ok) {
-                window.location.href = '/user_dashboard'; // Redirect on success
-            } else {
-                const error = await response.json();
-                alert(`Registration failed: ${error.error}`);
+            // Send OTP request
+            try {
+                const response = await fetch('/api/send_otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone: userData.phone })
+                });
+
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('register-form-step').classList.add('hidden');
+                    document.getElementById('otp-verification-step').classList.remove('hidden');
+                    showAlertModal("An OTP has been sent to your phone. Please check the server console.", "OTP Sent");
+                } else {
+                    showAlertModal(result.error || "Failed to send OTP. Please try again.", "Error");
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlertModal("An error occurred. Please try again later.", "Error");
+            }
+        });
+
+        document.getElementById('otp-verification-step').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const otp = document.getElementById('otp').value;
+
+            // Verify OTP
+            try {
+                const verificationResponse = await fetch('/api/verify_otp', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone: userData.phone, otp: otp })
+                });
+
+                const verificationResult = await verificationResponse.json();
+                if (verificationResponse.ok) {
+                    // If OTP is correct, proceed with final registration
+                    const registerResponse = await fetch('/api/register', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(userData)
+                    });
+
+                    if (registerResponse.ok) {
+                        window.location.href = '/user_dashboard';
+                    } else {
+                        const registerError = await registerResponse.json();
+                        showAlertModal(registerError.error, "Registration Failed");
+                    }
+                } else {
+                    showAlertModal(verificationResult.error || "Invalid OTP. Please try again.", "OTP Verification Failed");
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlertModal("An error occurred during verification. Please try again.", "Error");
             }
         });
     </script>
