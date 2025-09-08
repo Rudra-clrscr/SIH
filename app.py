@@ -3,7 +3,7 @@ import random
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import datetime, timedelta
 from database import db, Tourist, Itinerary, EmergencyContact, Alert
-from flask_socketio import SocketIO, join_room, leave_room, emit
+import threading
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -17,10 +17,8 @@ app.config['SECRET_KEY'] = 'your-super-secret-key-for-hackathon' # Needed for se
 # Initialize DB with app
 db.init_app(app)
 
-# Initialize SocketIO
-socketio = SocketIO(app)
-
-# A temporary storage for OTPs. In a production app, use a secure, temporary cache like Firebase or Redis.
+# A temporary storage for OTPs. In a production app, use a secure, temporary cache like Redis.
+# OTPs expire after 5 minutes
 sent_otps = {}
 
 # --- Web Page Routes ---
@@ -55,52 +53,56 @@ def authorities_dashboard():
 
 # --- API Endpoints ---
 
-@app.route('/api/send_otp_firebase', methods=['POST'])
-def send_otp_firebase():
-    """Simulates sending an OTP via a Firebase Admin SDK call."""
+@app.route('/api/send_otp', methods=['POST'])
+def send_otp():
+    """Generates and 'sends' an OTP to the user's phone number."""
     data = request.json
     phone = data.get('phone')
 
     if not phone:
         return jsonify({'error': 'Phone number is required'}), 400
+    
+    # Check if a tourist with this phone number already exists
+    if Tourist.query.filter_by(phone=phone).first():
+        return jsonify({'error': 'A tourist with this phone number is already registered'}), 409
 
-    # In a real application, you would use Firebase Admin SDK here.
-    # from firebase_admin.auth import create_custom_token
-    # token = create_custom_token(uid)
-    
-    # For this simulation, we'll generate a dummy token.
-    dummy_token = f"dummy-token-{random.randint(1000, 9999)}"
-    
-    print(f"DEBUG: Simulating Firebase OTP send. Dummy token '{dummy_token}' for phone number {phone}")
-    
-    return jsonify({'message': 'OTP sent successfully', 'token': dummy_token}), 200
+    # Generate a 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+    sent_otps[phone] = {'otp': otp, 'timestamp': datetime.utcnow()}
+    print(f"DEBUG: Sent OTP '{otp}' to phone number {phone}") # Log to console for demonstration
 
-@app.route('/api/verify_otp_firebase', methods=['POST'])
-def verify_otp_firebase():
-    """Verifies the OTP and token from the client-side."""
+    return jsonify({'message': 'OTP sent successfully'}), 200
+
+@app.route('/api/verify_otp', methods=['POST'])
+def verify_otp():
+    """Verifies the OTP submitted by the user."""
     data = request.json
     phone = data.get('phone')
     otp = data.get('otp')
-    token = data.get('token')
-    
-    if not all([phone, otp, token]):
-        return jsonify({'error': 'Missing phone, otp, or token'}), 400
 
-    # In a real application, you would verify the token with Firebase here.
-    # from firebase_admin import auth
-    # user = auth.verify_id_token(token)
-    
-    # For this simulation, any valid-looking data is accepted.
-    if token.startswith('dummy-token-') and len(otp) == 6:
-        return jsonify({'message': 'OTP verified successfully'}), 200
+    if not phone or not otp:
+        return jsonify({'error': 'Phone and OTP are required'}), 400
+
+    if phone in sent_otps:
+        otp_data = sent_otps[phone]
+        # Check if OTP is expired (5 minutes)
+        if (datetime.utcnow() - otp_data['timestamp']).total_seconds() > 300:
+            del sent_otps[phone]
+            return jsonify({'error': 'OTP has expired'}), 401
+        
+        if otp_data['otp'] == otp:
+            del sent_otps[phone] # OTP is used, so remove it from temporary storage
+            return jsonify({'message': 'OTP verified successfully'}), 200
+        else:
+            return jsonify({'error': 'Invalid OTP'}), 401
     else:
-        return jsonify({'error': 'Invalid OTP or token'}), 401
+        return jsonify({'error': 'No OTP was sent for this number'}), 401
 
 @app.route('/api/register', methods=['POST'])
 def register_tourist():
     """Handles tourist registration after OTP verification."""
     data = request.json
-    if not all(k in data for k in ['name', 'kyc_type', 'kyc_id', 'phone', 'visit_duration_days']):
+    if not all(k in data for k in ['name', 'kyc_id', 'kyc_type', 'phone', 'visit_duration_days']):
         return jsonify({'error': 'Missing required fields for registration'}), 400
     
     if Tourist.query.filter_by(kyc_id=data['kyc_id']).first():
@@ -171,7 +173,7 @@ def panic_button():
 @app.route('/api/dashboard/tourists', methods=['GET'])
 def get_all_tourists():
     tourists = Tourist.query.all()
-    output = [{'id': t.id, 'name': t.name, 'kyc_id': t.kyc_id, 'visit_end_date': t.visit_end_date.isoformat(), 'safety_score': t.safety_score, 'last_known_location': t.last_known_location, 'is_active': t.is_active} for t in tourists]
+    output = [{'id': t.id, 'name': t.name, 'kyc_id': t.kyc_id, 'phone': t.phone, 'visit_end_date': t.visit_end_date.isoformat(), 'safety_score': t.safety_score, 'last_known_location': t.last_known_location, 'is_active': t.is_active} for t in tourists]
     return jsonify({'tourists': output})
 
 @app.route('/api/dashboard/alerts', methods=['GET'])
@@ -180,7 +182,7 @@ def get_all_alerts():
     output = [{'alert_id': a.id, 'tourist_name': a.tourist.name, 'tourist_id': a.tourist_id, 'location': a.location, 'timestamp': a.timestamp.isoformat(), 'alert_type': a.alert_type} for a in alerts]
     return jsonify({'alerts': output})
 
-# --- Final part of the script ---
+
 def initialize_database():
     with app.app_context():
         db.create_all()
@@ -192,7 +194,8 @@ def run_server():
     HOST = "127.0.0.1"
     PORT = 5000
     print(f"Starting Flask server on http://{HOST}:{PORT}")
-    app.run(host=HOST, port=PORT, debug=True)
+    # Setting use_reloader to False is important when running in a thread
+    app.run(host=HOST, port=PORT, debug=True, use_reloader=False)
 
 if __name__ == '__main__':
     run_server()

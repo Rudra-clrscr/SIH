@@ -9,33 +9,9 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
-    <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyDMlWackN39bWIi1aaTQLKNtYn7CajQ_C8",
-    authDomain: "smart-tourist-safety-sys-110b5.firebaseapp.com",
-    projectId: "smart-tourist-safety-sys-110b5",
-    storageBucket: "smart-tourist-safety-sys-110b5.firebasestorage.app",
-    messagingSenderId: "877364430241",
-    appId: "1:877364430241:web:d2ac3fe231bf2ac9ca37e0",
-    measurementId: "G-QQXV69CJC4"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
 
-    <!-- Registration Form Container -->
     <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
         <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Create Your Account</h2>
         <form id="register-form" class="space-y-6">
@@ -60,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Custom Modal for Alerts (replacing alert()) -->
     <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
         <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
             <h3 id="alert-title" class="text-xl font-bold mb-4 text-white"></h3>
@@ -78,7 +53,7 @@
         const durationInput = document.getElementById('duration');
         const otpInput = document.getElementById('otp');
         const otpSection = document.getElementById('otp-section');
-        let firebaseToken = null;
+        let isOtpVerified = false;
 
         // Modal functions
         function showAlertModal(title, message) {
@@ -102,15 +77,13 @@
             }
 
             try {
-                const response = await fetch('/api/send_otp_firebase', {
+                const response = await fetch('/api/send_otp', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ phone: phone })
                 });
 
                 if (response.ok) {
-                    const result = await response.json();
-                    firebaseToken = result.token;
                     showAlertModal('Success', 'An OTP has been sent to your number.');
                     otpSection.classList.remove('hidden');
                     sendOtpBtn.classList.add('hidden');
@@ -133,17 +106,17 @@
             const duration = durationInput.value;
             const otp = otpInput.value;
 
-            if (!name || !phone || !kyc_id || !duration || !otp || !firebaseToken) {
+            if (!name || !phone || !kyc_id || !duration || !otp) {
                 showAlertModal('Error', 'Please fill in all fields and verify your phone number.');
                 return;
             }
 
             try {
                 // First, verify the OTP with the backend
-                const verifyResponse = await fetch('/api/verify_otp_firebase', {
+                const verifyResponse = await fetch('/api/verify_otp', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ phone: phone, otp: otp, token: firebaseToken })
+                    body: JSON.stringify({ phone: phone, otp: otp })
                 });
 
                 if (verifyResponse.ok) {
