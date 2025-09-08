@@ -2,6 +2,8 @@ import os
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import datetime, timedelta
 from database import db, Tourist, Itinerary, EmergencyContact, Alert
+# flask_socketio is imported but not used, can be removed if not needed later
+from flask_socketio import SocketIO, join_room, leave_room, emit
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -49,7 +51,6 @@ def authorities_dashboard():
 
 @app.route('/api/register', methods=['POST'])
 def register_tourist():
-    # ... (logic is the same as before)
     data = request.json
     if not all(k in data for k in ['name', 'kyc_type', 'kyc_id', 'visit_duration_days']):
         return jsonify({'error': 'Missing required fields for registration'}), 400
@@ -60,7 +61,6 @@ def register_tourist():
     new_tourist = Tourist(name=data['name'], kyc_type=data['kyc_type'], kyc_id=data['kyc_id'], visit_start_date=start_date, visit_end_date=end_date)
     db.session.add(new_tourist)
     db.session.commit()
-    # Log the user in immediately after registration
     session['tourist_id'] = new_tourist.id
     return jsonify({'message': 'Tourist registered successfully', 'tourist_id': new_tourist.id}), 201
 
@@ -84,13 +84,12 @@ def logout_api():
 
 @app.route('/api/panic', methods=['POST'])
 def panic_button():
-    # Now gets tourist_id from session
     if 'tourist_id' not in session:
         return jsonify({'error': 'Not authenticated'}), 403
     
     tourist_id = session['tourist_id']
     data = request.json
-    location = data.get('location', 'Unknown Location') # Get location from request
+    location = data.get('location', 'Unknown Location')
 
     tourist = Tourist.query.get(tourist_id)
     if not tourist:
@@ -103,22 +102,31 @@ def panic_button():
     db.session.commit()
     return jsonify({'message': 'Panic signal received. Help is on the way.'}), 200
 
-# ... (Existing API endpoints for authorities dashboard remain the same)
 @app.route('/api/dashboard/tourists', methods=['GET'])
 def get_all_tourists():
-    # ... (code is unchanged)
     tourists = Tourist.query.all()
     output = [{'id': t.id, 'name': t.name, 'kyc_id': t.kyc_id, 'visit_end_date': t.visit_end_date.isoformat(), 'safety_score': t.safety_score, 'last_known_location': t.last_known_location, 'is_active': t.is_active} for t in tourists]
     return jsonify({'tourists': output})
 
 @app.route('/api/dashboard/alerts', methods=['GET'])
 def get_all_alerts():
-    # ... (code is unchanged)
     alerts = Alert.query.order_by(Alert.timestamp.desc()).all()
     output = [{'alert_id': a.id, 'tourist_name': a.tourist.name, 'tourist_id': a.tourist_id, 'location': a.location, 'timestamp': a.timestamp.isoformat(), 'alert_type': a.alert_type} for a in alerts]
     return jsonify({'alerts': output})
 
-if __name__ == '__main__':
+# --- Final part of the script ---
+def initialize_database():
     with app.app_context():
         db.create_all()
-    app.run(debug=True, host='0.0.0.0')
+        print("Database initialized.")
+
+def run_server():
+    """Function to run the Flask server. This is the part web.py will call."""
+    initialize_database()
+    HOST = "127.0.0.1"
+    PORT = 5000
+    print(f"Starting Flask server on http://{HOST}:{PORT}")
+    app.run(host=HOST, port=PORT, debug=True)
+
+if __name__ == '__main__':
+    run_server()
