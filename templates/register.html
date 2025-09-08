@@ -9,25 +9,96 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDMlWackN39bWIi1aaTQLKNtYn7CajQ_C8",
+            authDomain: "smart-tourist-safety-sys-110b5.firebaseapp.com",
+            projectId: "smart-tourist-safety-sys-110b5",
+            storageBucket: "smart-tourist-safety-sys-110b5.firebasestorage.app",
+            messagingSenderId: "877364430241",
+            appId: "1:877364430241:web:d2ac3fe231bf2ac9ca37e0",
+            measurementId: "G-QQXV69CJC4"
+        };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        window.registerWithFirebase = async () => {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const kyc_id = document.getElementById('kyc_id').value;
+            const duration = document.getElementById('duration').value;
+
+            if (!name || !email || !password || !kyc_id || !duration) {
+                showAlertModal('Error', 'Please fill in all fields.');
+                return;
+            }
+
+            try {
+                // Step 1: Create user in Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Step 2: Create user in our local Flask backend database
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name: name,
+                        email: email,
+                        kyc_id: kyc_id,
+                        kyc_type: 'Aadhaar',
+                        visit_duration_days: parseInt(duration),
+                    })
+                });
+
+                if (response.ok) {
+                    showAlertModal('Success', 'Registration complete. Redirecting to dashboard...', () => {
+                        window.location.href = '/user_dashboard';
+                    });
+                } else {
+                    const error = await response.json();
+                    showAlertModal('Registration Failed', `Backend error: ${error.error}`);
+                    // Optional: Delete Firebase user if backend registration fails
+                    // await deleteUser(user);
+                }
+            } catch (error) {
+                showAlertModal('Firebase Error', `Registration failed: ${error.message}`);
+            }
+        };
+
+        function showAlertModal(title, message, callback = null) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-message').innerText = message;
+            const modal = document.getElementById('alert-modal');
+            const okBtn = document.getElementById('alert-ok-btn');
+            okBtn.onclick = () => {
+                closeAlertModal();
+                if (callback) callback();
+            };
+            modal.style.display = 'flex';
+        }
+
+        function closeAlertModal() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
+    </script>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
-
     <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
         <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Create Your Account</h2>
-        <form id="register-form" class="space-y-6">
+        <form onsubmit="event.preventDefault(); registerWithFirebase();" class="space-y-6">
             <input type="text" id="name" placeholder="Full Name" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-            <input type="tel" id="phone" placeholder="Phone Number" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-            
-            <div id="otp-section" class="hidden space-y-4">
-                <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-                <input type="number" id="duration" placeholder="Duration of Visit (Days)" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-                <input type="text" id="otp" placeholder="Enter OTP" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-                <button type="submit" id="final-register-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Complete Registration</button>
-            </div>
-            
-            <button type="button" id="send-otp-btn" class="w-full bg-gray-700 text-cyan-400 font-bold py-3 rounded-lg transition duration-300 shadow-md border border-cyan-400">Send OTP</button>
+            <input type="email" id="email" placeholder="Email Address" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <input type="password" id="password" placeholder="Password" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <input type="number" id="duration" placeholder="Duration of Visit (Days)" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Register</button>
         </form>
-
         <div class="mt-4 text-center text-sm text-gray-400">
             Already have an account? <a href="/login" class="text-cyan-400 hover:underline">Login here</a>
         </div>
@@ -35,118 +106,12 @@
             <a href="/" class="text-cyan-400 hover:underline">Back to Home</a>
         </div>
     </div>
-
     <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
         <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
             <h3 id="alert-title" class="text-xl font-bold mb-4 text-white"></h3>
             <p id="alert-message" class="text-gray-300 mb-6"></p>
-            <button onclick="closeAlertModal()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
+            <button id="alert-ok-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
         </div>
     </div>
-
-    <script>
-        const sendOtpBtn = document.getElementById('send-otp-btn');
-        const finalRegisterBtn = document.getElementById('final-register-btn');
-        const nameInput = document.getElementById('name');
-        const phoneInput = document.getElementById('phone');
-        const kycIdInput = document.getElementById('kyc_id');
-        const durationInput = document.getElementById('duration');
-        const otpInput = document.getElementById('otp');
-        const otpSection = document.getElementById('otp-section');
-        let isOtpVerified = false;
-
-        // Modal functions
-        function showAlertModal(title, message) {
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-message').innerText = message;
-            document.getElementById('alert-modal').style.display = 'flex';
-        }
-
-        function closeAlertModal() {
-            document.getElementById('alert-modal').style.display = 'none';
-        }
-
-        // Registration - Step 1: Send OTP
-        sendOtpBtn.addEventListener('click', async () => {
-            const phone = phoneInput.value;
-            const name = nameInput.value;
-            
-            if (!name || !phone) {
-                showAlertModal('Error', 'Please enter your full name and phone number.');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/send_otp', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ phone: phone })
-                });
-
-                if (response.ok) {
-                    showAlertModal('Success', 'An OTP has been sent to your number.');
-                    otpSection.classList.remove('hidden');
-                    sendOtpBtn.classList.add('hidden');
-                } else {
-                    const error = await response.json();
-                    showAlertModal('Error', `Failed to send OTP: ${error.error}`);
-                }
-            } catch (error) {
-                showAlertModal('Error', 'An error occurred. Please try again.');
-            }
-        });
-
-        // Registration - Step 2: Verify OTP and register user
-        document.getElementById('register-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = nameInput.value;
-            const phone = phoneInput.value;
-            const kyc_id = kycIdInput.value;
-            const duration = durationInput.value;
-            const otp = otpInput.value;
-
-            if (!name || !phone || !kyc_id || !duration || !otp) {
-                showAlertModal('Error', 'Please fill in all fields and verify your phone number.');
-                return;
-            }
-
-            try {
-                // First, verify the OTP with the backend
-                const verifyResponse = await fetch('/api/verify_otp', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ phone: phone, otp: otp })
-                });
-
-                if (verifyResponse.ok) {
-                    // If OTP is valid, proceed with final registration
-                    const registerResponse = await fetch('/api/register', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            name: name,
-                            kyc_id: kyc_id,
-                            kyc_type: 'Aadhaar', // Simplified
-                            phone: phone,
-                            visit_duration_days: parseInt(duration),
-                        })
-                    });
-
-                    if (registerResponse.ok) {
-                        window.location.href = '/user_dashboard'; // Redirect on success
-                    } else {
-                        const error = await registerResponse.json();
-                        showAlertModal('Registration Failed', `Registration failed: ${error.error}`);
-                    }
-                } else {
-                    const error = await verifyResponse.json();
-                    showAlertModal('Verification Failed', `OTP verification failed: ${error.error}`);
-                }
-            } catch (error) {
-                showAlertModal('Error', 'An error occurred during verification. Please try again.');
-            }
-        });
-    </script>
 </body>
 </html>

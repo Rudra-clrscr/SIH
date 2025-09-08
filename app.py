@@ -1,9 +1,10 @@
 import os
-import random
 from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from datetime import datetime, timedelta
 from database import db, Tourist, Itinerary, EmergencyContact, Alert
 import threading
+from firebase_admin import credentials, initialize_app, auth
+import firebase_admin
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -17,8 +18,17 @@ app.config['SECRET_KEY'] = 'your-super-secret-key-for-hackathon' # Needed for se
 # Initialize DB with app
 db.init_app(app)
 
-# A temporary storage for OTPs. In a production app, use a secure, temporary cache like Redis.
-# OTPs expire after 5 minutes
+# Initialize Firebase Admin SDK (Replace with your actual service account key)
+try:
+    cred = credentials.Certificate("path/to/serviceAccountKey.json")
+    firebase_admin.initialize_app(cred)
+    print("Firebase Admin SDK initialized successfully.")
+except FileNotFoundError:
+    print("WARNING: Firebase service account key not found. OTP functionality will be simulated.")
+except Exception as e:
+    print(f"ERROR: Failed to initialize Firebase Admin SDK. {e}")
+
+# A temporary storage for OTPs.
 sent_otps = {}
 
 # --- Web Page Routes ---
@@ -55,7 +65,7 @@ def authorities_dashboard():
 
 @app.route('/api/send_otp', methods=['POST'])
 def send_otp():
-    """Generates and 'sends' an OTP to the user's phone number."""
+    """Simulates sending an OTP to the user's phone number."""
     data = request.json
     phone = data.get('phone')
 
@@ -66,32 +76,30 @@ def send_otp():
     if Tourist.query.filter_by(phone=phone).first():
         return jsonify({'error': 'A tourist with this phone number is already registered'}), 409
 
-    # Generate a 6-digit OTP
     otp = str(random.randint(100000, 999999))
     sent_otps[phone] = {'otp': otp, 'timestamp': datetime.utcnow()}
-    print(f"DEBUG: Sent OTP '{otp}' to phone number {phone}") # Log to console for demonstration
+    print(f"DEBUG: Sent OTP '{otp}' to phone number {phone}")
 
     return jsonify({'message': 'OTP sent successfully'}), 200
 
 @app.route('/api/verify_otp', methods=['POST'])
 def verify_otp():
-    """Verifies the OTP submitted by the user."""
+    """Verifies the OTP from the client-side."""
     data = request.json
     phone = data.get('phone')
     otp = data.get('otp')
 
-    if not phone or not otp:
-        return jsonify({'error': 'Phone and OTP are required'}), 400
-
+    if not all([phone, otp]):
+        return jsonify({'error': 'Missing phone or otp'}), 400
+    
     if phone in sent_otps:
         otp_data = sent_otps[phone]
-        # Check if OTP is expired (5 minutes)
         if (datetime.utcnow() - otp_data['timestamp']).total_seconds() > 300:
             del sent_otps[phone]
             return jsonify({'error': 'OTP has expired'}), 401
         
         if otp_data['otp'] == otp:
-            del sent_otps[phone] # OTP is used, so remove it from temporary storage
+            del sent_otps[phone]
             return jsonify({'message': 'OTP verified successfully'}), 200
         else:
             return jsonify({'error': 'Invalid OTP'}), 401
@@ -194,7 +202,6 @@ def run_server():
     HOST = "127.0.0.1"
     PORT = 5000
     print(f"Starting Flask server on http://{HOST}:{PORT}")
-    # Setting use_reloader to False is important when running in a thread
     app.run(host=HOST, port=PORT, debug=True, use_reloader=False)
 
 if __name__ == '__main__':
