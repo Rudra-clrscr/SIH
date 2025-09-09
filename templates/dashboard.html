@@ -5,62 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tourist Safety Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/leaflet/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="/leaflet/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/dist/leaflet.css" />
     <style>
         body { font-family: 'Inter', sans-serif; }
-        #map { height: 500px; } /* Crucial: map needs a defined height */
-        .table-auto th, .table-auto td { padding: 0.75rem; text-align: left; }
+        #map { height: 500px; }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 text-gray-800">
+
     <header class="bg-white shadow-md">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-800">Authorities Dashboard</h1>
+            <h1 class="text-2xl font-bold">Authorities Dashboard</h1>
             <div class="flex items-center space-x-2">
-                <div id="status-indicator" class="w-4 h-4 rounded-full bg-green-500"></div>
-                <span id="status-text" class="text-gray-600">Live</span>
+                <div class="w-4 h-4 rounded-full bg-green-500 animate-pulse"></div>
+                <span>Live</span>
             </div>
         </div>
     </header>
 
     <main class="container mx-auto p-6">
         <div class="bg-white p-4 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">Live Tourist Map</h2>
+            <h2 class="text-xl font-semibold mb-4">Live Tourist Map</h2>
             <div id="map" class="rounded-lg z-0"></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">Live Tourist Feed</h2>
+                <h2 class="text-xl font-semibold mb-4">Live Tourist Feed</h2>
                 <div class="overflow-x-auto">
                     <table class="w-full table-auto">
-                        <thead> </thead>
-                        <tbody id="tourists-table-body">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Safety Score</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Known Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tourists-table-body" class="bg-white divide-y divide-gray-200">
                            </tbody>
                     </table>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-xl font-semibold mb-4 text-gray-700">Alerts History</h2>
+                <h2 class="text-xl font-semibold mb-4">Alerts History</h2>
                 <div id="alerts-list" class="space-y-4 max-h-96 overflow-y-auto">
                     </div>
             </div>
         </div>
     </main>
 
-    <script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
-    
+    <script src="/static/dist/leaflet.js"></script>
     <script>
         const API_BASE_URL = "/api";
         let map;
-        let touristMarkers = {}; // Object to store markers by tourist ID
+        let touristMarkers = {};
 
-        function initMap() {
-            map = L.map('map').setView([28.6139, 77.2090], 5); // Center on India
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+        function getScoreColor(score) {
+            if (score > 75) return 'text-green-600';
+            if (score > 40) return 'text-yellow-600';
+            return 'text-red-600';
         }
 
         function parseLocation(locationStr) {
@@ -74,57 +79,79 @@
         async function fetchTourists() {
             try {
                 const response = await fetch(`${API_BASE_URL}/dashboard/tourists`);
-                if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
                 const tableBody = document.getElementById('tourists-table-body');
                 tableBody.innerHTML = ''; 
 
-                if (data.tourists.length === 0) {
-                     tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-10 text-gray-500">No active tourists found.</td></tr>';
-                     return;
-                }
-
                 const activeTouristIds = new Set();
                 data.tourists.forEach(tourist => {
                     activeTouristIds.add(tourist.id);
-                    // (Table update logic remains the same)
-                    // ...
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 whitespace-nowrap">${tourist.name}</td>
+                        <td class="px-4 py-2 whitespace-nowrap">${tourist.phone}</td>
+                        <td class="px-4 py-2 whitespace-nowrap font-bold ${getScoreColor(tourist.safety_score)}">${tourist.safety_score}</td>
+                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">${tourist.last_known_location}</td>
+                    `;
+                    tableBody.appendChild(row);
 
-                    // Map Marker Logic
                     const location = parseLocation(tourist.last_known_location);
                     if (location) {
-                        const popupContent = `<b>${tourist.name}</b><br>ID: ${tourist.id}<br>Score: ${tourist.safety_score}`;
+                        const popupContent = `<b>${tourist.name}</b><br>Score: ${tourist.safety_score}`;
                         if (touristMarkers[tourist.id]) {
-                            // Marker exists, update its position and popup
                             touristMarkers[tourist.id].setLatLng(location).setPopupContent(popupContent);
                         } else {
-                            // Marker doesn't exist, create it
-                            const newMarker = L.marker(location).addTo(map).bindPopup(popupContent);
-                            touristMarkers[tourist.id] = newMarker;
+                            touristMarkers[tourist.id] = L.marker(location).addTo(map).bindPopup(popupContent);
                         }
                     }
                 });
 
-                // Clean up markers for tourists who are no longer in the data
-                for (const touristId in touristMarkers) {
-                    if (!activeTouristIds.has(parseInt(touristId))) {
-                        map.removeLayer(touristMarkers[touristId]);
-                        delete touristMarkers[touristId];
+                Object.keys(touristMarkers).forEach(id => {
+                    if (!activeTouristIds.has(parseInt(id))) {
+                        map.removeLayer(touristMarkers[id]);
+                        delete touristMarkers[id];
                     }
-                }
+                });
 
             } catch (error) {
                 console.error("Failed to fetch tourists:", error);
-                // (Error handling remains the same)
             }
         }
 
         async function fetchAlerts() {
-            // (This function remains the same)
+            try {
+                const response = await fetch(`${API_BASE_URL}/dashboard/alerts`);
+                const data = await response.json();
+                const alertsList = document.getElementById('alerts-list');
+                alertsList.innerHTML = '';
+
+                if (data.alerts.length === 0) {
+                    alertsList.innerHTML = '<p class="text-center py-4 text-gray-500">No alerts to display.</p>';
+                    return;
+                }
+
+                data.alerts.forEach(alert => {
+                    const alertElement = document.createElement('div');
+                    alertElement.className = 'p-3 rounded-lg bg-red-100 border border-red-300 text-sm';
+                    alertElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <p class="font-bold text-red-800">${alert.alert_type}</p>
+                            <span class="text-xs text-red-600">${alert.timestamp}</span>
+                        </div>
+                        <p class="text-gray-700 mt-1"><span class="font-semibold">Tourist:</span> ${alert.tourist_name}</p>
+                        <p class="text-gray-700"><span class="font-semibold">Location:</span> ${alert.location}</p>
+                    `;
+                    alertsList.appendChild(alertElement);
+                });
+            } catch (error) {
+                console.error("Failed to fetch alerts:", error);
+            }
         }
         
         window.onload = () => {
-            initMap(); // Initialize the map on page load
+            map = L.map('map').setView([28.6139, 77.2090], 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
             fetchTourists();
             fetchAlerts();
             setInterval(() => {

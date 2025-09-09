@@ -1,198 +1,166 @@
 import os
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import random
+import hashlib
+from math import radians, sin, cos, sqrt, atan2
+from database import db, Tourist, SafetyZone, Alert
 
 # --- App Configuration ---
 app = Flask(__name__)
-# Set a secret key for session management. In a real app, use a secure, random key.
 app.secret_key = 'your_super_secret_key' 
-# Configure the database path. It will create a 'tourist_data.db' file in your project directory.
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tourist_data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+db.init_app(app)
 
-# --- In-memory OTP storage (for demonstration purposes) ---
-# In a production environment, you would use a more robust solution like Redis.
+# --- Helper Function for Distance ---
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371
+    lat1_rad, lon1_rad, lat2_rad, lon2_rad = map(radians, [lat1, lon1, lat2, lon2])
+    dlon, dlat = lon2_rad - lon1_rad, lat2_rad - lat1_rad
+    a = sin(dlat / 2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(dlon / 2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
+# --- In-memory OTP storage ---
 otp_storage = {}
-
-
-# --- Database Models ---
-class Tourist(db.Model):
-    """Represents a tourist in the system."""
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    phone = db.Column(db.String(15), unique=True, nullable=False)
-    kyc_id = db.Column(db.String(50), unique=True, nullable=False)
-    kyc_type = db.Column(db.String(20), nullable=False, default='Aadhaar')
-    registration_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    visit_end_date = db.Column(db.DateTime, nullable=False)
-    last_known_location = db.Column(db.String(100), nullable=True)
-    safety_score = db.Column(db.Integer, default=100)
-    
-    def __repr__(self):
-        return f'<Tourist {self.name}>'
 
 # --- HTML Page Routes ---
 @app.route('/')
-def home():
-    """Renders the main landing page."""
-    return render_template('home.html')
+def home(): return render_template('home.html')
 
 @app.route('/register')
-def register_page():
-    """Renders the user registration page."""
-    return render_template('register.html')
+def register_page(): return render_template('register.html')
 
 @app.route('/login')
-def login_page():
-    """Renders the user login page."""
-    return render_template('login.html')
+def login_page(): return render_template('login.html')
 
 @app.route('/user_dashboard')
 def user_dashboard():
-    """Renders the dashboard for a logged-in tourist."""
-    if 'tourist_id' not in session:
-        return redirect(url_for('login_page'))
+    if 'tourist_id' not in session: return redirect(url_for('login_page'))
     tourist = Tourist.query.get(session['tourist_id'])
     if not tourist:
+        session.clear()
         return redirect(url_for('login_page'))
     return render_template('user_dashboard.html', tourist=tourist)
 
 @app.route('/dashboard')
-def admin_dashboard():
-    """Renders the main dashboard for authorities."""
-    return render_template('dashboard.html')
-
+def admin_dashboard(): return render_template('dashboard.html')
 
 # --- API Endpoints ---
-@app.route('/api/send_otp', methods=['POST'])
-def send_otp():
-    """Generates and 'sends' an OTP for phone verification."""
-    data = request.get_json()
-    phone = data.get('phone')
-    if not phone:
-        return jsonify({'error': 'Phone number is required.'}), 400
-    
-    # Simulate OTP generation
-    otp = str(random.randint(100000, 999999))
-    otp_storage[phone] = otp
-    
-    # In a real application, you would integrate with an SMS gateway here.
-    # For now, we'll print it to the console for easy testing.
-    print(f"--- OTP for {phone}: {otp} ---")
-    
-    return jsonify({'message': 'OTP sent successfully to your phone.'}), 200
-
-@app.route('/api/verify_otp', methods=['POST'])
-def verify_otp():
-    """Verifies the OTP submitted by the user."""
-    data = request.get_json()
-    phone = data.get('phone')
-    otp = data.get('otp')
-    
-    if otp_storage.get(phone) == otp:
-        # OTP is correct, remove it from storage
-        del otp_storage[phone]
-        return jsonify({'message': 'OTP verified successfully.'}), 200
-    else:
-        return jsonify({'error': 'Invalid or expired OTP.'}), 400
-
 @app.route('/api/register', methods=['POST'])
 def register_user():
-    """Registers a new tourist in the database."""
     data = request.get_json()
-    
-    # Check if user already exists
-    if Tourist.query.filter_by(phone=data['phone']).first() or Tourist.query.filter_by(kyc_id=data['kyc_id']).first():
-        return jsonify({'error': 'Phone number or KYC ID already registered.'}), 409
-        
-    # Calculate visit end date
-    visit_duration = int(data['visit_duration_days'])
-    end_date = datetime.utcnow() + timedelta(days=visit_duration)
-    
-    new_tourist = Tourist(
-        name=data['name'],
-        phone=data['phone'],
-        kyc_id=data['kyc_id'],
-        kyc_type=data['kyc_type'],
-        visit_end_date=end_date
-    )
+    if Tourist.query.filter((Tourist.phone == data['phone']) | (Tourist.kyc_id == data['kyc_id'])).first():
+        return jsonify({'error': 'Phone or KYC ID already registered.'}), 409
+    end_date = datetime.utcnow() + timedelta(days=int(data['visit_duration_days']))
+    unique_string = f"{data['name']}:{data['kyc_id']}:{datetime.utcnow()}"
+    hex_dig = hashlib.sha256(unique_string.encode()).hexdigest()
+    new_tourist = Tourist(digital_id=hex_dig, name=data['name'], phone=data['phone'], kyc_id=data['kyc_id'], kyc_type=data['kyc_type'], visit_end_date=end_date)
     db.session.add(new_tourist)
     db.session.commit()
-    
-    # Automatically log the user in after registration
     session['tourist_id'] = new_tourist.id
-    
     return jsonify({'message': 'Registration successful.'}), 201
-
-@app.route('/api/login_phone', methods=['POST'])
-def login_with_phone():
-    """Logs a user in using their phone number."""
-    data = request.get_json()
-    phone = data.get('phone')
-    tourist = Tourist.query.filter_by(phone=phone).first()
-    
-    if tourist:
-        session['tourist_id'] = tourist.id
-        return jsonify({'message': 'Login successful'}), 200
-    else:
-        return jsonify({'error': 'No account found with that phone number.'}), 404
-
-@app.route('/api/logout')
-def logout():
-    """Logs the current user out."""
-    session.pop('tourist_id', None)
-    return redirect(url_for('home'))
 
 @app.route('/api/update_location', methods=['POST'])
 def update_location():
-    """Updates the last known location of the logged-in tourist."""
-    if 'tourist_id' not in session:
-        return jsonify({'error': 'Not authenticated'}), 401
-        
+    if 'tourist_id' not in session: return jsonify({'error': 'Not authenticated'}), 401
+    
     data = request.get_json()
-    location_str = f"Lat: {data.get('latitude')}, Lon: {data.get('longitude')}"
-    
+    lat, lon = data.get('latitude'), data.get('longitude')
     tourist = Tourist.query.get(session['tourist_id'])
-    tourist.last_known_location = location_str
-    db.session.commit()
     
-    return jsonify({'message': 'Location updated successfully'}), 200
+    if not tourist: return jsonify({'error': 'Tourist not found'}), 404
 
-@app.route('/api/dashboard/tourists')
-def get_tourists_data():
-    """Provides data for the authorities' dashboard."""
-    tourists = Tourist.query.all()
-    tourist_list = [
-        {
-            'id': t.id,
-            'name': t.name,
-            'phone': t.phone,
-            'last_known_location': t.last_known_location,
-            'safety_score': t.safety_score,
-            'visit_end_date': t.visit_end_date.strftime('%Y-%m-%d')
-        } for t in tourists
-    ]
-    return jsonify({'tourists': tourist_list})
+    tourist.last_known_location = f"Lat: {lat}, Lon: {lon}"
+    
+    # --- CORRECTED SAFETY SCORE LOGIC ---
+    current_zone_score = None
+    for zone in SafetyZone.query.all():
+        if haversine(lat, lon, zone.latitude, zone.longitude) <= zone.radius:
+            if current_zone_score is None or zone.regional_score < current_zone_score:
+                current_zone_score = zone.regional_score
+
+            if zone.regional_score < 40:
+                ten_minutes_ago = datetime.utcnow() - timedelta(minutes=10)
+                if not Alert.query.filter(Alert.tourist_id == tourist.id, Alert.alert_type.like('%Geo-fence Breach%'), Alert.timestamp > ten_minutes_ago).first():
+                    db.session.add(Alert(tourist_id=tourist.id, location=tourist.last_known_location, alert_type=f"Geo-fence Breach: Entered {zone.name}"))
+
+    if current_zone_score is not None:
+        # If the tourist is inside any zone
+        if current_zone_score < tourist.safety_score:
+            tourist.safety_score = current_zone_score
+        elif current_zone_score > 80 and tourist.safety_score < 100:
+            tourist.safety_score += 1
+    # If tourist is in a neutral/unmapped area (current_zone_score is None), do nothing.
+
+    db.session.commit()
+    return jsonify({'message': 'Location updated', 'safety_score': tourist.safety_score}), 200
+
+@app.route('/api/panic', methods=['POST'])
+def trigger_panic_alert():
+    if 'tourist_id' not in session: return jsonify({'error': 'Not authenticated'}), 401
+    tourist = Tourist.query.get(session['tourist_id'])
+    if not tourist: return jsonify({'error': 'Tourist not found'}), 404
+    new_alert = Alert(tourist_id=tourist.id, location=tourist.last_known_location, alert_type='Panic Button')
+    db.session.add(new_alert)
+    db.session.commit()
+    print(f"PANIC ALERT: Triggered by {tourist.name} at {tourist.last_known_location}")
+    return jsonify({'message': 'Panic alert successfully registered.'}), 200
 
 @app.route('/api/safety_zones')
 def get_safety_zones():
-    """Provides predefined safety zone data for the user map."""
-    # This is dummy data. In a real app, this would come from a database.
-    zones = [
-        {'name': 'Safe Zone A', 'latitude': 28.6139, 'longitude': 77.2090, 'radius': 50, 'regional_score': 95},
-        {'name': 'Moderate Zone B', 'latitude': 19.0760, 'longitude': 72.8777, 'radius': 100, 'regional_score': 70},
-        {'name': 'High-Risk Zone C', 'latitude': 34.0837, 'longitude': 74.7973, 'radius': 80, 'regional_score': 25}
-    ]
-    return jsonify({'safety_zones': zones})
+    return jsonify({'safety_zones': [{'name': z.name, 'latitude': z.latitude, 'longitude': z.longitude, 'radius': z.radius, 'regional_score': z.regional_score} for z in SafetyZone.query.all()]})
 
+@app.route('/api/dashboard/tourists')
+def get_tourists_data():
+    return jsonify({'tourists': [{'id': t.id, 'name': t.name, 'phone': t.phone, 'safety_score': t.safety_score, 'last_known_location': t.last_known_location} for t in Tourist.query.all()]})
 
-# --- Main Execution ---
+@app.route('/api/dashboard/alerts')
+def get_alerts_data():
+    return jsonify({'alerts': [{'tourist_name': a.tourist.name, 'alert_type': a.alert_type, 'location': a.location, 'timestamp': a.timestamp.strftime('%d-%b-%Y %H:%M:%S')} for a in Alert.query.order_by(Alert.timestamp.desc()).limit(50).all()]})
+
+@app.route('/api/send_otp', methods=['POST'])
+def send_otp():
+    phone = request.get_json().get('phone')
+    if not phone: return jsonify({'error': 'Phone number is required.'}), 400
+    otp = str(random.randint(100000, 999999))
+    otp_storage[phone] = otp
+    print(f"--- OTP for {phone}: {otp} ---")
+    return jsonify({'message': 'OTP sent.'}), 200
+
+@app.route('/api/verify_otp', methods=['POST'])
+def verify_otp():
+    data = request.get_json()
+    if otp_storage.get(data.get('phone')) == data.get('otp'):
+        del otp_storage[data.get('phone')]
+        return jsonify({'message': 'OTP verified.'}), 200
+    return jsonify({'error': 'Invalid OTP.'}), 400
+
+@app.route('/api/login_phone', methods=['POST'])
+def login_with_phone():
+    tourist = Tourist.query.filter_by(phone=request.get_json().get('phone')).first()
+    if tourist:
+        session['tourist_id'] = tourist.id
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'error': 'Account not found.'}), 404
+
+@app.route('/api/logout')
+def logout():
+    session.pop('tourist_id', None)
+    return redirect(url_for('home'))
+
+def add_initial_data():
+    if SafetyZone.query.count() == 0:
+        db.session.bulk_save_objects([
+            SafetyZone(name='City Center', latitude=28.6139, longitude=77.2090, radius=50, regional_score=95),
+            SafetyZone(name='Remote Hills', latitude=28.7041, longitude=77.1025, radius=100, regional_score=70),
+            SafetyZone(name='Restricted Area', latitude=28.5355, longitude=77.3910, radius=80, regional_score=25)
+        ])
+        db.session.commit()
+
 if __name__ == '__main__':
-    # Create the database and tables if they don't exist
     with app.app_context():
         db.create_all()
-    # Run the Flask app in debug mode
+        add_initial_data()
     app.run(debug=True, port=15000)
