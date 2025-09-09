@@ -28,33 +28,31 @@ def check_for_anomalies():
         active_tourists = Tourist.query.filter(Tourist.visit_end_date > now).all()
 
         if len(active_tourists) < 2:
-            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Skipping anomaly check: not enough active tourists (requires at least 2).")
+            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Skipping anomaly check...")
             return
 
-        # --- START: NEW DEBUGGING CODE ---
         print("\n" + "="*50)
         print(f"Running Anomaly Check at: {now.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Found {len(active_tourists)} active tourists.")
-        # --- END: NEW DEBUGGING CODE ---
 
         time_diffs, tourist_map = [], {}
         for i, tourist in enumerate(active_tourists):
             diff = (now - tourist.last_updated_at).total_seconds()
             time_diffs.append(diff)
             tourist_map[i] = tourist
-            
-            # --- START: NEW DEBUGGING CODE ---
             print(f"  - Tourist: {tourist.name}, Last Update: {tourist.last_updated_at.strftime('%H:%M:%S')}, Inactivity (sec): {diff:.2f}")
-            # --- END: NEW DEBUGGING CODE ---
 
         X = np.array(time_diffs).reshape(-1, 1)
-        model = IsolationForest(contamination=0.1, random_state=42)
+        model = IsolationForest(contamination=0.5, random_state=42)
+        
+        # --- NEW LINE TO VERIFY THE CHANGE ---
+        print(f"VERIFYING MODEL PARAMS -> {model.get_params()}")
+        # --- END NEW LINE ---
+
         predictions = model.fit_predict(X)
         
-        # --- START: NEW DEBUGGING CODE ---
         print(f"Model Predictions: {predictions} (Note: -1 is an anomaly)")
         print("="*50 + "\n")
-        # --- END: NEW DEBUGGING CODE ---
 
         for i, prediction in enumerate(predictions):
             if prediction == -1: 
@@ -228,7 +226,7 @@ def add_initial_data():
 def run_anomaly_detection_service():
     """Wrapper function to run the anomaly check in a loop."""
     while True:
-        time.sleep(300) # Wait for 5 minutes
+        time.sleep(30) # Wait for 30 seconds for faster testing
         check_for_anomalies()
 
 if __name__ == '__main__':
