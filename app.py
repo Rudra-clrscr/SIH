@@ -1,10 +1,17 @@
 import os
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-from datetime import datetime, timedelta
+import threading
+import time
 import random
 import hashlib
+from datetime import datetime, timedelta
 from math import radians, sin, cos, sqrt, atan2
-from database import db, Tourist, SafetyZone, Alert
+
+import numpy as np
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from sklearn.ensemble import IsolationForest
+
+# Import database objects from the separate database.py file
+from database import db, Tourist, SafetyZone, Alert, Anomaly
 
 # --- App Configuration ---
 app = Flask(__name__)
@@ -12,6 +19,56 @@ app.secret_key = 'your_super_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tourist_data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+
+# --- AI Anomaly Detection Function ---
+def check_for_anomalies():
+    """Uses Isolation Forest to detect tourists with anomalous inactivity periods."""
+    with app.app_context():
+        now = datetime.utcnow()
+        active_tourists = Tourist.query.filter(Tourist.visit_end_date > now).all()
+
+        if len(active_tourists) < 2:
+            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Skipping anomaly check: not enough active tourists (requires at least 2).")
+            return
+
+        # --- START: NEW DEBUGGING CODE ---
+        print("\n" + "="*50)
+        print(f"Running Anomaly Check at: {now.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Found {len(active_tourists)} active tourists.")
+        # --- END: NEW DEBUGGING CODE ---
+
+        time_diffs, tourist_map = [], {}
+        for i, tourist in enumerate(active_tourists):
+            diff = (now - tourist.last_updated_at).total_seconds()
+            time_diffs.append(diff)
+            tourist_map[i] = tourist
+            
+            # --- START: NEW DEBUGGING CODE ---
+            print(f"  - Tourist: {tourist.name}, Last Update: {tourist.last_updated_at.strftime('%H:%M:%S')}, Inactivity (sec): {diff:.2f}")
+            # --- END: NEW DEBUGGING CODE ---
+
+        X = np.array(time_diffs).reshape(-1, 1)
+        model = IsolationForest(contamination=0.1, random_state=42)
+        predictions = model.fit_predict(X)
+        
+        # --- START: NEW DEBUGGING CODE ---
+        print(f"Model Predictions: {predictions} (Note: -1 is an anomaly)")
+        print("="*50 + "\n")
+        # --- END: NEW DEBUGGING CODE ---
+
+        for i, prediction in enumerate(predictions):
+            if prediction == -1: 
+                tourist = tourist_map[i]
+                inactivity_minutes = time_diffs[i] / 60
+                
+                ten_minutes_ago = now - timedelta(minutes=10)
+                if not Anomaly.query.filter(Anomaly.tourist_id == tourist.id, Anomaly.anomaly_type == 'Prolonged Inactivity', Anomaly.timestamp > ten_minutes_ago).first():
+                    desc = f"Prolonged inactivity detected. Last update was {inactivity_minutes:.1f} minutes ago."
+                    db.session.add(Anomaly(tourist_id=tourist.id, anomaly_type='Prolonged Inactivity', description=desc))
+                    print(f"ANOMALY LOGGED for {tourist.name}: {desc}")
+        
+        db.session.commit()
+
 
 # --- Helper Function for Distance ---
 def haversine(lat1, lon1, lat2, lon2):
@@ -73,8 +130,8 @@ def update_location():
     if not tourist: return jsonify({'error': 'Tourist not found'}), 404
 
     tourist.last_known_location = f"Lat: {lat}, Lon: {lon}"
+    # The 'last_updated_at' field is automatically updated by the onupdate event in the model
     
-    # --- CORRECTED SAFETY SCORE LOGIC ---
     current_zone_score = None
     for zone in SafetyZone.query.all():
         if haversine(lat, lon, zone.latitude, zone.longitude) <= zone.radius:
@@ -87,12 +144,10 @@ def update_location():
                     db.session.add(Alert(tourist_id=tourist.id, location=tourist.last_known_location, alert_type=f"Geo-fence Breach: Entered {zone.name}"))
 
     if current_zone_score is not None:
-        # If the tourist is inside any zone
         if current_zone_score < tourist.safety_score:
             tourist.safety_score = current_zone_score
         elif current_zone_score > 80 and tourist.safety_score < 100:
             tourist.safety_score += 1
-    # If tourist is in a neutral/unmapped area (current_zone_score is None), do nothing.
 
     db.session.commit()
     return jsonify({'message': 'Location updated', 'safety_score': tourist.safety_score}), 200
@@ -105,7 +160,6 @@ def trigger_panic_alert():
     new_alert = Alert(tourist_id=tourist.id, location=tourist.last_known_location, alert_type='Panic Button')
     db.session.add(new_alert)
     db.session.commit()
-    print(f"PANIC ALERT: Triggered by {tourist.name} at {tourist.last_known_location}")
     return jsonify({'message': 'Panic alert successfully registered.'}), 200
 
 @app.route('/api/safety_zones')
@@ -118,7 +172,19 @@ def get_tourists_data():
 
 @app.route('/api/dashboard/alerts')
 def get_alerts_data():
-    return jsonify({'alerts': [{'tourist_name': a.tourist.name, 'alert_type': a.alert_type, 'location': a.location, 'timestamp': a.timestamp.strftime('%d-%b-%Y %H:%M:%S')} for a in Alert.query.order_by(Alert.timestamp.desc()).limit(50).all()]})
+    alerts = Alert.query.order_by(Alert.timestamp.desc()).limit(50).all()
+    return jsonify({'alerts': [{'tourist_name': a.tourist.name, 'alert_type': a.alert_type, 'location': a.location, 'timestamp': a.timestamp.strftime('%d-%b-%Y %H:%M:%S')} for a in alerts]})
+
+@app.route('/api/dashboard/anomalies')
+def get_anomalies_data():
+    anomalies = Anomaly.query.order_by(Anomaly.timestamp.desc()).limit(50).all()
+    result = [{
+        'tourist_name': a.tourist.name,
+        'anomaly_type': a.anomaly_type,
+        'description': a.description,
+        'timestamp': a.timestamp.strftime('%d-%b-%Y %H:%M:%S')
+    } for a in anomalies]
+    return jsonify({'anomalies': result})
 
 @app.route('/api/send_otp', methods=['POST'])
 def send_otp():
@@ -159,8 +225,19 @@ def add_initial_data():
         ])
         db.session.commit()
 
+def run_anomaly_detection_service():
+    """Wrapper function to run the anomaly check in a loop."""
+    while True:
+        time.sleep(300) # Wait for 5 minutes
+        check_for_anomalies()
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         add_initial_data()
-    app.run(debug=True, port=15000)
+    
+    anomaly_thread = threading.Thread(target=run_anomaly_detection_service, daemon=True)
+    anomaly_thread.start()
+    
+    # Use threaded=True to handle background tasks gracefully
+    app.run(debug=True, port=15000, threaded=True)

@@ -16,10 +16,10 @@
 
     <header class="bg-white shadow-md">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold">Authorities Dashboard</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Authorities Dashboard</h1>
             <div class="flex items-center space-x-2">
                 <div class="w-4 h-4 rounded-full bg-green-500 animate-pulse"></div>
-                <span>Live</span>
+                <span class="font-semibold">Live</span>
             </div>
         </div>
     </header>
@@ -30,35 +30,50 @@
             <div id="map" class="rounded-lg z-0"></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-lg">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Tourist Feed -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
                 <h2 class="text-xl font-semibold mb-4">Live Tourist Feed</h2>
-                <div class="overflow-x-auto">
+                <div class="overflow-auto max-h-96">
                     <table class="w-full table-auto">
-                        <thead class="bg-gray-50">
+                        <thead class="bg-gray-50 sticky top-0">
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Safety Score</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Known Location</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Location</th>
                             </tr>
                         </thead>
                         <tbody id="tourists-table-body" class="bg-white divide-y divide-gray-200">
-                           </tbody>
+                           <!-- Data will be injected here -->
+                        </tbody>
                     </table>
                 </div>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-xl font-semibold mb-4">Alerts History</h2>
-                <div id="alerts-list" class="space-y-4 max-h-96 overflow-y-auto">
+
+            <!-- Alerts and Anomalies Column -->
+            <div class="space-y-6">
+                <!-- AI-Detected Anomalies -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">AI-Detected Anomalies</h2>
+                    <div id="anomalies-list" class="space-y-4 max-h-96 overflow-y-auto">
+                        <!-- Anomaly data will be injected here -->
                     </div>
+                </div>
+
+                <!-- Alerts History -->
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Manual Alerts History</h2>
+                    <div id="alerts-list" class="space-y-4 max-h-96 overflow-y-auto">
+                        <!-- Alert data will be injected here -->
+                    </div>
+                </div>
             </div>
         </div>
     </main>
 
     <script src="/static/dist/leaflet.js"></script>
     <script>
-        const API_BASE_URL = "/api";
+        const API_BASE_URL = "/api/dashboard";
         let map;
         let touristMarkers = {};
 
@@ -78,7 +93,7 @@
 
         async function fetchTourists() {
             try {
-                const response = await fetch(`${API_BASE_URL}/dashboard/tourists`);
+                const response = await fetch(`${API_BASE_URL}/tourists`);
                 const data = await response.json();
                 const tableBody = document.getElementById('tourists-table-body');
                 tableBody.innerHTML = ''; 
@@ -90,7 +105,6 @@
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td class="px-4 py-2 whitespace-nowrap">${tourist.name}</td>
-                        <td class="px-4 py-2 whitespace-nowrap">${tourist.phone}</td>
                         <td class="px-4 py-2 whitespace-nowrap font-bold ${getScoreColor(tourist.safety_score)}">${tourist.safety_score}</td>
                         <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">${tourist.last_known_location}</td>
                     `;
@@ -121,13 +135,13 @@
 
         async function fetchAlerts() {
             try {
-                const response = await fetch(`${API_BASE_URL}/dashboard/alerts`);
+                const response = await fetch(`${API_BASE_URL}/alerts`);
                 const data = await response.json();
                 const alertsList = document.getElementById('alerts-list');
                 alertsList.innerHTML = '';
 
                 if (data.alerts.length === 0) {
-                    alertsList.innerHTML = '<p class="text-center py-4 text-gray-500">No alerts to display.</p>';
+                    alertsList.innerHTML = '<p class="text-center py-4 text-gray-500">No manual alerts.</p>';
                     return;
                 }
 
@@ -140,7 +154,6 @@
                             <span class="text-xs text-red-600">${alert.timestamp}</span>
                         </div>
                         <p class="text-gray-700 mt-1"><span class="font-semibold">Tourist:</span> ${alert.tourist_name}</p>
-                        <p class="text-gray-700"><span class="font-semibold">Location:</span> ${alert.location}</p>
                     `;
                     alertsList.appendChild(alertElement);
                 });
@@ -148,15 +161,51 @@
                 console.error("Failed to fetch alerts:", error);
             }
         }
+
+        async function fetchAnomalies() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/anomalies`);
+                const data = await response.json();
+                const anomaliesList = document.getElementById('anomalies-list');
+                anomaliesList.innerHTML = '';
+
+                if (data.anomalies.length === 0) {
+                    anomaliesList.innerHTML = '<p class="text-center py-4 text-gray-500">No anomalies detected.</p>';
+                    return;
+                }
+
+                data.anomalies.forEach(anomaly => {
+                    const anomalyElement = document.createElement('div');
+                    anomalyElement.className = 'p-3 rounded-lg bg-yellow-100 border border-yellow-300 text-sm';
+                    anomalyElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <p class="font-bold text-yellow-800">${anomaly.anomaly_type}</p>
+                            <span class="text-xs text-yellow-600">${anomaly.timestamp}</span>
+                        </div>
+                        <p class="text-gray-700 mt-1"><span class="font-semibold">Tourist:</span> ${anomaly.tourist_name}</p>
+                        <p class="text-gray-600 text-xs mt-1">${anomaly.description}</p>
+                    `;
+                    anomaliesList.appendChild(anomalyElement);
+                });
+            } catch (error) {
+                console.error("Failed to fetch anomalies:", error);
+            }
+        }
         
         window.onload = () => {
             map = L.map('map').setView([28.6139, 77.2090], 5);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+            
+            // Initial data fetch
             fetchTourists();
             fetchAlerts();
+            fetchAnomalies();
+
+            // Set up intervals to refresh data every 5 seconds
             setInterval(() => {
                 fetchTourists();
                 fetchAlerts();
+                fetchAnomalies();
             }, 5000); 
         };
     </script>
