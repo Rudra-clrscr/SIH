@@ -9,9 +9,10 @@ db = SQLAlchemy()
 class Tourist(db.Model):
     """Represents a tourist with their digital ID."""
     id = db.Column(db.Integer, primary_key=True)
+    digital_id = db.Column(db.String(128), unique=True, nullable=False) # Represents the Blockchain-based ID
     name = db.Column(db.String(100), nullable=False)
     kyc_id = db.Column(db.String(50), unique=True, nullable=False) # Aadhaar or Passport
-    phone = db.Column(db.String(20), unique=True, nullable=False) # Changed from email to phone
+    phone = db.Column(db.String(20), unique=True, nullable=False)
     kyc_type = db.Column(db.String(20), nullable=False)
     visit_start_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     visit_end_date = db.Column(db.DateTime, nullable=False)
@@ -45,3 +46,12 @@ class Alert(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     alert_type = db.Column(db.String(50), default='Panic Button') # e.g., Panic Button, Anomaly
     tourist = db.relationship('Tourist', backref='alerts')
+
+class SafetyZone(db.Model):
+    """Represents a pre-defined geographical zone with a safety score."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    radius = db.Column(db.Float, nullable=False) # Radius in kilometers
+    regional_score = db.Column(db.Integer, nullable=False) # Score from 0-100 for this region
