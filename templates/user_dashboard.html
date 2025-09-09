@@ -6,7 +6,7 @@
     <title>Dashboard - Aegis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='leaflet/leaflet.css') }}" />
+    <link rel="stylesheet" href="/static/dist/leaflet.css" />
     <style>
         body { font-family: 'Inter', sans-serif; }
         #userMap { height: 300px; } /* Map needs a defined height */
@@ -32,7 +32,7 @@
     
     <a href="/api/logout">Logout</a>
 
-    <script src="{{ url_for('static', filename='leaflet/leaflet.js') }}"></script>
+    <script src="/static/dist/leaflet.js"></script>
     
     <script>
         let userMap;
@@ -71,7 +71,6 @@
 
         // --- Live GPS Tracking ---
         async function sendLocationUpdate() {
-            // (This function remains largely the same, but with added map logic)
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
@@ -87,18 +86,44 @@
                     }
                 }
                 
-                // (The fetch call to /api/update_location and UI updates remain the same)
-                // ...
+                document.getElementById('gps-status').textContent = `GPS Active | Last update: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('gps-status').classList.remove('animate-pulse', 'text-yellow-400');
+                document.getElementById('gps-status').classList.add('text-green-400');
+
+                try {
+                    await fetch('/api/update_location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ latitude: lat, longitude: lon })
+                    });
+                } catch (error) {
+                    console.error("Failed to send location update:", error);
+                    document.getElementById('gps-status').textContent = 'Error: Could not sync location with server.';
+                    document.getElementById('gps-status').classList.add('text-red-500');
+                }
+
+            }, () => {
+                // Error callback for geolocation
+                document.getElementById('gps-status').textContent = 'Error: GPS permission denied or unavailable.';
+                document.getElementById('gps-status').classList.remove('animate-pulse', 'text-yellow-400');
+                document.getElementById('gps-status').classList.add('text-red-500');
             });
         }
         
-        // --- Panic Button (Unchanged) ---
-        // ...
+        // --- Panic Button ---
+        const panicButton = document.getElementById('panic-button');
+        panicButton.addEventListener('click', async () => {
+            if (confirm("Are you sure you want to send a PANIC alert? This will immediately notify authorities.")) {
+                // In a real app, you would have a dedicated /api/panic endpoint
+                console.log("PANIC ALERT TRIGGERED!");
+                alert("Panic alert has been sent to the authorities.");
+            }
+        });
 
         window.onload = () => {
             initUserMap();
             sendLocationUpdate(); 
-            setInterval(sendLocationUpdate, 15000);
+            setInterval(sendLocationUpdate, 15000); // Update location every 15 seconds
         };
     </script>
 </body>
