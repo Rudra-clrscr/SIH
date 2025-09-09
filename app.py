@@ -15,8 +15,8 @@ from database import db, Tourist, SafetyZone, Alert, Anomaly
 
 # --- App Configuration ---
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.secret_key = 'your_super_secret_key' 
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tourist_data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
