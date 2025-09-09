@@ -9,68 +9,13 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
     </style>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
-
-        // Your web app's Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDMlWackN39bWIi1aaTQLKNtYn7CajQ_C8",
-            authDomain: "smart-tourist-safety-sys-110b5.firebaseapp.com",
-            projectId: "smart-tourist-safety-sys-110b5",
-            storageBucket: "smart-tourist-safety-sys-110b5.firebasestorage.app",
-            messagingSenderId: "877364430241",
-            appId: "1:877364430241:web:d2ac3fe231bf2ac9ca37e0",
-            measurementId: "G-QQXV69CJC4"
-        };
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        
-        window.loginWithFirebase = async () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                // Step 1: Sign in with Firebase Authentication
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const idToken = await userCredential.user.getIdToken();
-
-                // Step 2: Use the ID token to authenticate with our local backend
-                const response = await fetch('/api/login_email', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ email: email, idToken: idToken })
-                });
-
-                if (response.ok) {
-                    window.location.href = '/user_dashboard';
-                } else {
-                    const error = await response.json();
-                    showAlertModal('Login Failed', error.error);
-                }
-            } catch (error) {
-                showAlertModal('Firebase Error', `Login failed: ${error.message}`);
-            }
-        };
-
-        function showAlertModal(title, message) {
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-message').innerText = message;
-            document.getElementById('alert-modal').style.display = 'flex';
-        }
-
-        function closeAlertModal() {
-            document.getElementById('alert-modal').style.display = 'none';
-        }
-    </script>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
     <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-700">
         <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Welcome Back</h2>
         
-        <form onsubmit="event.preventDefault(); loginWithFirebase();" class="space-y-6">
-            <input type="email" id="email" placeholder="Email Address" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-            <input type="password" id="password" placeholder="Password" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
+        <form onsubmit="event.preventDefault(); loginWithPhone();" class="space-y-6">
+            <input type="tel" id="phone" placeholder="Phone Number" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
             <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Login</button>
         </form>
         
@@ -89,5 +34,43 @@
             <button onclick="closeAlertModal()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
         </div>
     </div>
+    
+    <script>
+        const phoneInput = document.getElementById('phone');
+        const alertModal = document.getElementById('alert-modal');
+        const alertTitle = document.getElementById('alert-title');
+        const alertMessage = document.getElementById('alert-message');
+
+        function showAlertModal(title, message) {
+            alertTitle.innerText = title;
+            alertMessage.innerText = message;
+            alertModal.style.display = 'flex';
+        }
+
+        function closeAlertModal() {
+            alertModal.style.display = 'none';
+        }
+
+        async function loginWithPhone() {
+            const phone = phoneInput.value;
+            
+            try {
+                const response = await fetch('/api/login_phone', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ phone: phone })
+                });
+
+                if (response.ok) {
+                    window.location.href = '/user_dashboard';
+                } else {
+                    const error = await response.json();
+                    showAlertModal('Login Failed', error.error);
+                }
+            } catch (error) {
+                showAlertModal('Network Error', 'Failed to connect to the server.');
+            }
+        }
+    </script>
 </body>
 </html>

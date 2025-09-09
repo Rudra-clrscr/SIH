@@ -2,7 +2,6 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
 # Initialize SQLAlchemy instance.
-# This will be linked to the Flask app in the main application file.
 db = SQLAlchemy()
 
 # --- Database Models ---
@@ -12,7 +11,7 @@ class Tourist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     kyc_id = db.Column(db.String(50), unique=True, nullable=False) # Aadhaar or Passport
-    email = db.Column(db.String(120), unique=True, nullable=False) # Changed from phone to email
+    phone = db.Column(db.String(20), unique=True, nullable=False) # Changed from email to phone
     kyc_type = db.Column(db.String(20), nullable=False)
     visit_start_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     visit_end_date = db.Column(db.DateTime, nullable=False)

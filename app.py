@@ -3,8 +3,7 @@ from flask import Flask, request, jsonify, render_template, session, redirect, u
 from datetime import datetime, timedelta
 from database import db, Tourist, Itinerary, EmergencyContact, Alert
 import threading
-from firebase_admin import credentials, initialize_app, auth
-import firebase_admin
+import random
 
 # Initialize Flask App
 app = Flask(__name__)
@@ -17,16 +16,6 @@ app.config['SECRET_KEY'] = 'your-super-secret-key-for-hackathon' # Needed for se
 
 # Initialize DB with app
 db.init_app(app)
-
-# Initialize Firebase Admin SDK (Replace with your actual service account key)
-try:
-    cred = credentials.Certificate("path/to/serviceAccountKey.json")
-    firebase_admin.initialize_app(cred)
-    print("Firebase Admin SDK initialized successfully.")
-except FileNotFoundError:
-    print("WARNING: Firebase service account key not found. OTP functionality will be simulated.")
-except Exception as e:
-    print(f"ERROR: Failed to initialize Firebase Admin SDK. {e}")
 
 # A temporary storage for OTPs.
 sent_otps = {}
@@ -127,19 +116,6 @@ def register_tourist():
     session['tourist_id'] = new_tourist.id
     return jsonify({'message': 'Tourist registered successfully', 'tourist_id': new_tourist.id}), 201
 
-@app.route('/api/login', methods=['POST'])
-def login_api():
-    """Handles tourist login by KYC ID and creates a session."""
-    data = request.json
-    if not data or 'kyc_id' not in data:
-        return jsonify({'error': 'Missing KYC ID'}), 400
-    
-    tourist = Tourist.query.filter_by(kyc_id=data['kyc_id']).first()
-    if tourist:
-        session['tourist_id'] = tourist.id
-        return jsonify({'message': 'Login successful', 'tourist_id': tourist.id})
-    return jsonify({'error': 'Invalid KYC ID'}), 401
-    
 @app.route('/api/login_phone', methods=['POST'])
 def login_phone():
     """Handles tourist login by phone number and creates a session."""
