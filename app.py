@@ -22,49 +22,42 @@ db.init_app(app)
 
 # --- AI Anomaly Detection Function ---
 def check_for_anomalies():
-    """Uses Isolation Forest to detect tourists with anomalous inactivity periods."""
+    """Checks for tourists who have crossed inactivity time thresholds."""
     with app.app_context():
         now = datetime.utcnow()
         active_tourists = Tourist.query.filter(Tourist.visit_end_date > now).all()
 
-        if len(active_tourists) < 2:
-            print(f"[{now.strftime('%Y-%m-%d %H:%M:%S')}] Skipping anomaly check...")
+        if not active_tourists:
             return
 
         print("\n" + "="*50)
-        print(f"Running Anomaly Check at: {now.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Found {len(active_tourists)} active tourists.")
+        print(f"Running Threshold Check at: {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
-        time_diffs, tourist_map = [], {}
-        for i, tourist in enumerate(active_tourists):
-            diff = (now - tourist.last_updated_at).total_seconds()
-            time_diffs.append(diff)
-            tourist_map[i] = tourist
-            print(f"  - Tourist: {tourist.name}, Last Update: {tourist.last_updated_at.strftime('%H:%M:%S')}, Inactivity (sec): {diff:.2f}")
+        # Define thresholds in seconds
+        CRITICAL_THRESHOLD = 600  
+        WARNING_THRESHOLD = 300   
 
-        X = np.array(time_diffs).reshape(-1, 1)
-        model = IsolationForest(contamination=0.5, random_state=42)
-        
-        # --- NEW LINE TO VERIFY THE CHANGE ---
-        print(f"VERIFYING MODEL PARAMS -> {model.get_params()}")
-        # --- END NEW LINE ---
+        for tourist in active_tourists:
+            inactivity_seconds = (now - tourist.last_updated_at).total_seconds()
+            print(f"  - Checking {tourist.name}: Inactivity = {inactivity_seconds:.0f} seconds")
 
-        predictions = model.fit_predict(X)
-        
-        print(f"Model Predictions: {predictions} (Note: -1 is an anomaly)")
-        print("="*50 + "\n")
-
-        for i, prediction in enumerate(predictions):
-            if prediction == -1: 
-                tourist = tourist_map[i]
-                inactivity_minutes = time_diffs[i] / 60
-                
+            if inactivity_seconds > CRITICAL_THRESHOLD:
+                alert_type = "Critical Inactivity (20+ min)"
                 ten_minutes_ago = now - timedelta(minutes=10)
-                if not Anomaly.query.filter(Anomaly.tourist_id == tourist.id, Anomaly.anomaly_type == 'Prolonged Inactivity', Anomaly.timestamp > ten_minutes_ago).first():
-                    desc = f"Prolonged inactivity detected. Last update was {inactivity_minutes:.1f} minutes ago."
-                    db.session.add(Anomaly(tourist_id=tourist.id, anomaly_type='Prolonged Inactivity', description=desc))
-                    print(f"ANOMALY LOGGED for {tourist.name}: {desc}")
-        
+                if not Anomaly.query.filter(Anomaly.tourist_id == tourist.id, Anomaly.timestamp > ten_minutes_ago).first():
+                    desc = f"Critical inactivity detected. Last update was {inactivity_seconds/60:.1f} minutes ago."
+                    db.session.add(Anomaly(tourist_id=tourist.id, anomaly_type=alert_type, description=desc))
+                    print(f"CRITICAL ANOMALY LOGGED for {tourist.name}")
+
+            elif inactivity_seconds > WARNING_THRESHOLD:
+                alert_type = "Warning Inactivity "
+                ten_minutes_ago = now - timedelta(minutes=10)
+                if not Anomaly.query.filter(Anomaly.tourist_id == tourist.id, Anomaly.timestamp > ten_minutes_ago).first():
+                    desc = f"Warning inactivity detected. Last update was {inactivity_seconds/60:.1f} minutes ago."
+                    db.session.add(Anomaly(tourist_id=tourist.id, anomaly_type=alert_type, description=desc))
+                    print(f"WARNING ANOMALY LOGGED for {tourist.name}")
+
+        print("="*50 + "\n")
         db.session.commit()
 
 
@@ -93,7 +86,8 @@ def login_page(): return render_template('login.html')
 @app.route('/user_dashboard')
 def user_dashboard():
     if 'tourist_id' not in session: return redirect(url_for('login_page'))
-    tourist = Tourist.query.get(session['tourist_id'])
+    # Updated to modern syntax to fix LegacyAPIWarning
+    tourist = db.session.get(Tourist, session['tourist_id'])
     if not tourist:
         session.clear()
         return redirect(url_for('login_page'))
@@ -123,12 +117,19 @@ def update_location():
     
     data = request.get_json()
     lat, lon = data.get('latitude'), data.get('longitude')
-    tourist = Tourist.query.get(session['tourist_id'])
+    # Updated to modern syntax to fix LegacyAPIWarning
+    tourist = db.session.get(Tourist, session['tourist_id'])
     
     if not tourist: return jsonify({'error': 'Tourist not found'}), 404
 
+    # New logic to resolve any active anomalies for this user
+    active_anomalies = Anomaly.query.filter_by(tourist_id=tourist.id, status='active').all()
+    if active_anomalies:
+        for anomaly in active_anomalies:
+            anomaly.status = 'resolved'
+        print(f"Resolved {len(active_anomalies)} active anomalies for tourist {tourist.name}.")
+
     tourist.last_known_location = f"Lat: {lat}, Lon: {lon}"
-    # The 'last_updated_at' field is automatically updated by the onupdate event in the model
     
     current_zone_score = None
     for zone in SafetyZone.query.all():
@@ -153,7 +154,8 @@ def update_location():
 @app.route('/api/panic', methods=['POST'])
 def trigger_panic_alert():
     if 'tourist_id' not in session: return jsonify({'error': 'Not authenticated'}), 401
-    tourist = Tourist.query.get(session['tourist_id'])
+    # Updated to modern syntax to fix LegacyAPIWarning
+    tourist = db.session.get(Tourist, session['tourist_id'])
     if not tourist: return jsonify({'error': 'Tourist not found'}), 404
     new_alert = Alert(tourist_id=tourist.id, location=tourist.last_known_location, alert_type='Panic Button')
     db.session.add(new_alert)
@@ -175,7 +177,8 @@ def get_alerts_data():
 
 @app.route('/api/dashboard/anomalies')
 def get_anomalies_data():
-    anomalies = Anomaly.query.order_by(Anomaly.timestamp.desc()).limit(50).all()
+    # This now only fetches anomalies with an 'active' status
+    anomalies = Anomaly.query.filter_by(status='active').order_by(Anomaly.timestamp.desc()).limit(50).all()
     result = [{
         'tourist_name': a.tourist.name,
         'anomaly_type': a.anomaly_type,

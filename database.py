@@ -18,7 +18,6 @@ class Tourist(db.Model):
     safety_score = db.Column(db.Integer, default=100)
     last_known_location = db.Column(db.String(200), default='N/A')
     
-    # This timestamp is crucial for detecting inactivity. It updates automatically on record change.
     last_updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
@@ -46,6 +45,8 @@ class Anomaly(db.Model):
     """Represents an anomaly detected by the AI model."""
     id = db.Column(db.Integer, primary_key=True)
     tourist_id = db.Column(db.Integer, db.ForeignKey('tourist.id'), nullable=False)
-    anomaly_type = db.Column(db.String(100), nullable=False) # e.g., 'Prolonged Inactivity'
+    anomaly_type = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    # This new column tracks if the anomaly is active or resolved
+    status = db.Column(db.String(20), nullable=False, default='active')
