@@ -218,13 +218,23 @@ def logout():
     return redirect(url_for('home'))
 
 def add_initial_data():
+    """Adds initial safety zones relevant to Agra."""
     if SafetyZone.query.count() == 0:
         db.session.bulk_save_objects([
-            SafetyZone(name='City Center', latitude=28.6139, longitude=77.2090, radius=50, regional_score=95),
-            SafetyZone(name='Remote Hills', latitude=28.7041, longitude=77.1025, radius=100, regional_score=70),
-            SafetyZone(name='Restricted Area', latitude=28.5355, longitude=77.3910, radius=80, regional_score=25)
+            # High-safety tourist zones in Agra
+            SafetyZone(name='Taj Mahal Complex', latitude=27.1751, longitude=78.0421, radius=10, regional_score=98),
+            SafetyZone(name='Agra Fort Area', latitude=27.1795, longitude=78.0211, radius=10, regional_score=95),
+            SafetyZone(name='Sadar Bazaar Market', latitude=27.1648, longitude=78.0036, radius=10, regional_score=85),
+            
+            # Moderately safe zone, further away
+            SafetyZone(name='Fatehpur Sikri', latitude=27.0945, longitude=77.6631, radius=10, regional_score=75),
+            
+            # Lower-safety zones for demonstration
+            SafetyZone(name='Yamuna Riverbank (East)', latitude=27.1850, longitude=78.0550, radius=10, regional_score=45),
+            SafetyZone(name='Chambal Ravine Outskirts', latitude=26.8500, longitude=78.3500, radius=10, regional_score=20)
         ])
         db.session.commit()
+        print("Added initial safety zones for Agra.")
 
 def run_anomaly_detection_service():
     """Wrapper function to run the anomaly check in a loop."""
