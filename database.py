@@ -1,39 +1,26 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
 db = SQLAlchemy()
 
-# --- Database Models ---
-
 class Tourist(db.Model):
-    """Represents a tourist with their digital ID."""
     id = db.Column(db.Integer, primary_key=True)
-    digital_id = db.Column(db.String(64), unique=True, nullable=False)
+    digital_id = db.Column(db.String(128), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    kyc_id = db.Column(db.String(50), unique=True, nullable=False)
     phone = db.Column(db.String(20), unique=True, nullable=False)
-    kyc_type = db.Column(db.String(20), nullable=False)
-    registration_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    kyc_id = db.Column(db.String(50), unique=True, nullable=False)
+    kyc_type = db.Column(db.String(50), nullable=False)
     visit_end_date = db.Column(db.DateTime, nullable=False)
     safety_score = db.Column(db.Integer, default=100)
-    last_known_location = db.Column(db.String(200), default='N/A')
+    last_known_location = db.Column(db.String(100), default='Not Available')
+    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    last_updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    alerts = db.relationship('Alert', backref='tourist', lazy=True, cascade="all, delete-orphan")
-    anomalies = db.relationship('Anomaly', backref='tourist', lazy=True, cascade="all, delete-orphan")
-
-class Alert(db.Model):
-    """Represents alerts triggered by tourists (e.g., Panic Button)."""
-    id = db.Column(db.Integer, primary_key=True)
-    tourist_id = db.Column(db.Integer, db.ForeignKey('tourist.id'), nullable=False)
-    location = db.Column(db.String(200), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    alert_type = db.Column(db.String(50), default='Panic Button')
+    alerts = relationship("Alert", back_populates="tourist")
+    anomalies = relationship("Anomaly", back_populates="tourist")
 
 class SafetyZone(db.Model):
-    """Represents a pre-defined geographical zone with a safety score."""
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     latitude = db.Column(db.Float, nullable=False)
@@ -41,12 +28,21 @@ class SafetyZone(db.Model):
     radius = db.Column(db.Float, nullable=False) # Radius in kilometers
     regional_score = db.Column(db.Integer, nullable=False)
 
-class Anomaly(db.Model):
-    """Represents an anomaly detected by the AI model."""
+class Alert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    tourist_id = db.Column(db.Integer, db.ForeignKey('tourist.id'), nullable=False)
-    anomaly_type = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text, nullable=True)
+    tourist_id = db.Column(db.Integer, ForeignKey('tourist.id'), nullable=False)
+    location = db.Column(db.String(100))
+    alert_type = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    # This new column tracks if the anomaly is active or resolved
-    status = db.Column(db.String(20), nullable=False, default='active')
+    
+    tourist = relationship("Tourist", back_populates="alerts")
+
+class Anomaly(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    tourist_id = db.Column(db.Integer, ForeignKey('tourist.id'), nullable=False)
+    anomaly_type = db.Column(db.String(100))
+    description = db.Column(db.String(255))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(20), default='active') # active, resolved
+    
+    tourist = relationship("Tourist", back_populates="anomalies")

@@ -214,7 +214,26 @@ def trigger_panic_alert():
     
     return jsonify({'message': 'Panic alert successfully registered.'}), 200
 
-# ... (other API endpoints like /api/safety_zones, /api/dashboard/* remain the same) ...
+@app.route('/api/safety_zones')
+def get_safety_zones():
+    zones = SafetyZone.query.all()
+    return jsonify({'safety_zones': [{'name': z.name, 'latitude': z.latitude, 'longitude': z.longitude, 'radius': z.radius, 'regional_score': z.regional_score} for z in zones]})
+
+@app.route('/api/dashboard/tourists')
+def get_tourists_data():
+    tourists = Tourist.query.all()
+    return jsonify({'tourists': [{'id': t.id, 'name': t.name, 'phone': t.phone, 'safety_score': t.safety_score, 'last_known_location': t.last_known_location} for t in tourists]})
+
+@app.route('/api/dashboard/alerts')
+def get_alerts_data():
+    alerts = Alert.query.order_by(Alert.timestamp.desc()).limit(50).all()
+    return jsonify({'alerts': [{'tourist_name': a.tourist.name, 'alert_type': a.alert_type, 'location': a.location, 'timestamp': a.timestamp.strftime('%d-%b-%Y %H:%M:%S')} for a in alerts]})
+
+@app.route('/api/dashboard/anomalies')
+def get_anomalies_data():
+    anomalies = Anomaly.query.filter_by(status='active').order_by(Anomaly.timestamp.desc()).limit(50).all()
+    result = [{'tourist_name': a.tourist.name, 'anomaly_type': a.anomaly_type, 'description': a.description, 'timestamp': a.timestamp.strftime('%d-%b-%Y %H:%M:%S')} for a in anomalies]
+    return jsonify({'anomalies': result})
 
 def add_initial_data():
     """Adds a comprehensive list of initial safety zones for India."""
