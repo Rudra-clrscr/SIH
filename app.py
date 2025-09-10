@@ -218,31 +218,53 @@ def logout():
     return redirect(url_for('home'))
 
 def add_initial_data():
-    """Adds initial safety zones for Uttar Pradesh."""
+    """Adds initial safety zones for all of India."""
     if SafetyZone.query.count() == 0:
         db.session.bulk_save_objects([
-            # === Agra Zones ===
-            SafetyZone(name='Taj Mahal Complex', latitude=27.1751, longitude=78.0421, radius=2, regional_score=98),
-            SafetyZone(name='Agra Fort Area', latitude=27.1795, longitude=78.0211, radius=2.5, regional_score=95),
-            SafetyZone(name='Fatehpur Sikri', latitude=27.0945, longitude=77.6631, radius=5, regional_score=75),
-            SafetyZone(name='Chambal Ravine Outskirts', latitude=26.8500, longitude=78.3500, radius=15, regional_score=20),
+            # === Jammu & Kashmir (NEW) ===
+            SafetyZone(name='High-Alert: Zone near LoC', latitude=34.5266, longitude=74.4735, radius=30, regional_score=5),
+            SafetyZone(name='High-Risk: Remote Southern Valley', latitude=33.7294, longitude=74.83, radius=25, regional_score=15),
+            SafetyZone(name='Srinagar (Dal Lake Area)', latitude=34.0837, longitude=74.7973, radius=10, regional_score=85),
+            SafetyZone(name='Vaishno Devi Shrine, Katra', latitude=33.0298, longitude=74.9482, radius=8, regional_score=98),
+            SafetyZone(name='Leh City, Ladakh', latitude=34.1650, longitude=77.5771, radius=12, regional_score=95),
+
+            # === High-Alert & Restricted Zones ===
+            SafetyZone(name='High-Alert: Cross-Border Area', latitude=29.5000, longitude=80.2000, radius=50, regional_score=5),
+            SafetyZone(name='High-Risk: Remote Insurgency Zone', latitude=24.5000, longitude=83.0000, radius=40, regional_score=10),
             
-            # === Bareilly Zones (NEW) ===
-            SafetyZone(name='Bareilly Cantt', latitude=28.3490, longitude=79.4260, radius=4, regional_score=99),
-            SafetyZone(name='Phoenix United Mall, Bareilly', latitude=28.3984, longitude=79.4312, radius=2, regional_score=94),
-            SafetyZone(name='Ala Hazrat Dargah', latitude=28.3586, longitude=79.4211, radius=1.5, regional_score=92),
-            SafetyZone(name='Bareilly Old City Area', latitude=28.3680, longitude=79.4150, radius=3, regional_score=60),
-            SafetyZone(name='Ramganga River Floodplain', latitude=28.3300, longitude=79.3800, radius=5, regional_score=35),
-            
-            # === Other Uttar Pradesh Zones (NEW) ===
+            # === North India ===
+            SafetyZone(name='Lutyens\' Delhi', latitude=28.6139, longitude=77.2090, radius=5, regional_score=98),
+            SafetyZone(name='The Ridge, Shimla', latitude=31.1048, longitude=77.1734, radius=3, regional_score=94),
+            SafetyZone(name='Pink City, Jaipur', latitude=26.9124, longitude=75.7873, radius=4, regional_score=90),
+
+            # === Uttar Pradesh ===
+            SafetyZone(name='Taj Mahal Complex', latitude=27.1751, longitude=78.0421, radius=10, regional_score=98),
+            SafetyZone(name='Agra Fort Area', latitude=27.1795, longitude=78.0211, radius=10, regional_score=95),
+            SafetyZone(name='Bareilly Cantt', latitude=28.3490, longitude=79.4260, radius=10, regional_score=99),
             SafetyZone(name='Ram Janmabhoomi, Ayodhya', latitude=26.7956, longitude=82.1943, radius=10, regional_score=96),
             SafetyZone(name='Kashi Vishwanath, Varanasi', latitude=25.3109, longitude=83.0107, radius=10, regional_score=95),
             SafetyZone(name='Hazratganj, Lucknow', latitude=26.8467, longitude=80.9462, radius=10, regional_score=88),
             SafetyZone(name='Dudhwa National Park', latitude=28.4892, longitude=80.6488, radius=20, regional_score=50),
-            SafetyZone(name='Sangam Area, Prayagraj', latitude=25.4213, longitude=81.8891, radius=10, regional_score=85)
+            
+            # === West India ===
+            SafetyZone(name='South Mumbai', latitude=18.9220, longitude=72.8347, radius=10, regional_score=95),
+            SafetyZone(name='North Goa Beaches', latitude=15.5562, longitude=73.7547, radius=10, regional_score=78),
+            SafetyZone(name='Dharavi, Mumbai', latitude=19.0409, longitude=72.8558, radius=10, regional_score=55),
+            SafetyZone(name='Rann of Kutch', latitude=23.7337, longitude=70.3218, radius=50, regional_score=40),
+
+            # === South India ===
+            SafetyZone(name='Koramangala, Bengaluru', latitude=12.9352, longitude=77.6245, radius=50, regional_score=90),
+            SafetyZone(name='Marina Beach, Chennai', latitude=13.0500, longitude=80.2825, radius=30, regional_score=85),
+            SafetyZone(name='Munnar Tea Gardens, Kerala', latitude=10.0889, longitude=77.0595, radius=40, regional_score=88),
+            SafetyZone(name='Hitech City, Hyderabad', latitude=17.4435, longitude=78.3519, radius=50, regional_score=92),
+
+            # === East India ===
+            SafetyZone(name='Park Street, Kolkata', latitude=22.5529, longitude=88.3542, radius=20, regional_score=87),
+            SafetyZone(name='Mall Road, Darjeeling', latitude=27.0415, longitude=88.2673, radius=30, regional_score=93),
+            SafetyZone(name='Kaziranga National Park, Assam', latitude=26.5786, longitude=93.1738, radius=25, regional_score=45)
         ])
         db.session.commit()
-        print("Added initial safety zones for Uttar Pradesh.")
+        print("Added initial safety zones for all of India, including J&K.")
 
 def run_anomaly_detection_service():
     """Wrapper function to run the anomaly check in a loop."""
