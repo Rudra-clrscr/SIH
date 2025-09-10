@@ -1,6 +1,6 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,12 +9,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/dist/leaflet.css" />
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        #userMap { height: 300px; }
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        #userMap {
+            height: 300px;
+        }
     </style>
 </head>
+
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 space-y-8">
-    
+
     <div class="w-full max-w-2xl text-center">
         <h1 class="text-3xl font-bold">Welcome, <span class="text-cyan-400">{{ tourist.name }}</span>!</h1>
         <p id="gps-status" class="text-sm text-yellow-400 mt-2 animate-pulse">Initializing GPS...</p>
@@ -38,7 +44,8 @@
             </div>
             <div class="flex justify-between items-center pt-2 border-t border-gray-700">
                 <span class="font-semibold text-gray-400">Current Safety Score:</span>
-                <span class="text-2xl font-bold {% if tourist.safety_score > 75 %} text-green-400 {% elif tourist.safety_score > 40 %} text-yellow-400 {% else %} text-red-500 {% endif %}">
+                <span
+                    class="text-2xl font-bold {% if tourist.safety_score > 75 %} text-green-400 {% elif tourist.safety_score > 40 %} text-yellow-400 {% else %} text-red-500 {% endif %}">
                     {{ tourist.safety_score }}
                 </span>
             </div>
@@ -50,9 +57,10 @@
     </div>
 
     <div class="text-center">
-        <button id="panic-button" class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 shadow-md">PANIC</button>
+        <button id="panic-button"
+            class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 shadow-md">PANIC</button>
     </div>
-    
+
     <a href="/api/logout" class="text-gray-400 hover:text-cyan-400 transition duration-300">Logout</a>
 
     <script src="/static/dist/leaflet.js"></script>
@@ -95,7 +103,7 @@
                 gpsStatus.classList.add('text-red-500');
             });
         }
-        
+
         // --- UPDATED PANIC BUTTON LOGIC ---
         document.getElementById('panic-button').addEventListener('click', async () => {
             if (confirm("Are you sure you want to send a PANIC alert? This will immediately notify authorities.")) {
@@ -120,4 +128,5 @@
         };
     </script>
 </body>
+
 </html>
