@@ -246,46 +246,46 @@ def add_initial_data():
                 SafetyZone(name='High-Alert: India-China Border Area (Northeast)', latitude=27.9881, longitude=88.8250, radius=40, regional_score=10),
 
                 # === High Tourist Risk Zones (Scams, Crowds, etc.) ===
-                SafetyZone(name='Paharganj Area, Delhi', latitude=28.6439, longitude=77.2124, radius=2, regional_score=45),
-                SafetyZone(name='Baga Beach Area (Night), Goa', latitude=15.5562, longitude=73.7547, radius=3, regional_score=55),
-                SafetyZone(name='Sudder Street Area, Kolkata', latitude=22.5608, longitude=88.3520, radius=1.5, regional_score=50),
-                SafetyZone(name='Isolated Ghats, Varanasi', latitude=25.2820, longitude=82.9563, radius=5, regional_score=60),
+                SafetyZone(name='Paharganj Area, Delhi', latitude=28.6439, longitude=77.2124, radius=20, regional_score=45),
+                SafetyZone(name='Baga Beach Area (Night), Goa', latitude=15.5562, longitude=73.7547, radius=30, regional_score=55),
+                SafetyZone(name='Sudder Street Area, Kolkata', latitude=22.5608, longitude=88.3520, radius=30, regional_score=50),
+                SafetyZone(name='Isolated Ghats, Varanasi', latitude=25.2820, longitude=82.9563, radius=50, regional_score=60),
 
                 # === North India ===
-                SafetyZone(name='Srinagar (Dal Lake Area)', latitude=34.0837, longitude=74.7973, radius=10, regional_score=85),
-                SafetyZone(name='Leh City, Ladakh', latitude=34.1650, longitude=77.5771, radius=12, regional_score=95),
-                SafetyZone(name='Lutyens\' Delhi', latitude=28.6139, longitude=77.2090, radius=5, regional_score=98),
-                SafetyZone(name='The Ridge, Shimla', latitude=31.1048, longitude=77.1734, radius=3, regional_score=94),
-                SafetyZone(name='Pink City, Jaipur', latitude=26.9124, longitude=75.7873, radius=4, regional_score=90),
-                SafetyZone(name='Golden Temple, Amritsar', latitude=31.6200, longitude=74.8765, radius=2, regional_score=96),
+                SafetyZone(name='Srinagar (Dal Lake Area)', latitude=34.0837, longitude=74.7973, radius=50, regional_score=85),
+                SafetyZone(name='Leh City, Ladakh', latitude=34.1650, longitude=77.5771, radius=120, regional_score=95),
+                SafetyZone(name='Lutyens\' Delhi', latitude=28.6139, longitude=77.2090, radius=50, regional_score=98),
+                SafetyZone(name='The Ridge, Shimla', latitude=31.1048, longitude=77.1734, radius=30, regional_score=94),
+                SafetyZone(name='Pink City, Jaipur', latitude=26.9124, longitude=75.7873, radius=40, regional_score=90),
+                SafetyZone(name='Golden Temple, Amritsar', latitude=31.6200, longitude=74.8765, radius=20, regional_score=96),
 
                 # === Uttar Pradesh & Bareilly ===
-                SafetyZone(name='Taj Mahal Complex, Agra', latitude=27.1751, longitude=78.0421, radius=2, regional_score=98),
-                SafetyZone(name='Hazratganj, Lucknow', latitude=26.8467, longitude=80.9462, radius=2.5, regional_score=88),
+                SafetyZone(name='Taj Mahal Complex, Agra', latitude=27.1751, longitude=78.0421, radius=20, regional_score=98),
+                SafetyZone(name='Hazratganj, Lucknow', latitude=26.8467, longitude=80.9462, radius=20, regional_score=88),
                 # Bareilly (Within)
                 SafetyZone(name='Bareilly Cantt', latitude=28.3490, longitude=79.4260, radius=4, regional_score=99),
-                SafetyZone(name='IVRI Campus, Bareilly', latitude=28.3649, longitude=79.4143, radius=3, regional_score=95),
-                SafetyZone(name='Civil Lines, Bareilly', latitude=28.3540, longitude=79.4310, radius=2.5, regional_score=88),
-                SafetyZone(name='Ala Hazrat Dargah, Bareilly', latitude=28.3586, longitude=79.4211, radius=1.5, regional_score=92),
-                SafetyZone(name='Bareilly Old City Area', latitude=28.3680, longitude=79.4150, radius=3, regional_score=60),
+                SafetyZone(name='IVRI Campus, Bareilly', latitude=28.3649, longitude=79.4143, radius=30, regional_score=95),
+                SafetyZone(name='Civil Lines, Bareilly', latitude=28.3540, longitude=79.4310, radius=20, regional_score=88),
+                SafetyZone(name='Ala Hazrat Dargah, Bareilly', latitude=28.3586, longitude=79.4211, radius=30, regional_score=92),
+                SafetyZone(name='Bareilly Old City Area', latitude=28.3680, longitude=79.4150, radius=30, regional_score=60),
                 # Bareilly (Around)
                 SafetyZone(name='Pilibhit Tiger Reserve', latitude=28.6333, longitude=79.8000, radius=20, regional_score=50),
-                SafetyZone(name='Aonla Industrial Area', latitude=28.2778, longitude=79.1633, radius=5, regional_score=65),
+                SafetyZone(name='Aonla Industrial Area', latitude=28.2778, longitude=79.1633, radius=50, regional_score=65),
 
                 # === West India ===
-                SafetyZone(name='South Mumbai', latitude=18.9220, longitude=72.8347, radius=5, regional_score=95),
+                SafetyZone(name='South Mumbai', latitude=18.9220, longitude=72.8347, radius=50, regional_score=95),
                 SafetyZone(name='Gir National Park, Gujarat', latitude=21.2849, longitude=70.7937, radius=25, regional_score=50),
-                SafetyZone(name='Ahmedabad Old City', latitude=23.0225, longitude=72.5714, radius=4, regional_score=85),
+                SafetyZone(name='Ahmedabad Old City', latitude=23.0225, longitude=72.5714, radius=40, regional_score=85),
                 
                 # === South India ===
-                SafetyZone(name='Hitech City, Hyderabad', latitude=17.4435, longitude=78.3519, radius=5, regional_score=92),
-                SafetyZone(name='Munnar Tea Gardens, Kerala', latitude=10.0889, longitude=77.0595, radius=15, regional_score=88),
-                SafetyZone(name='Hampi Ruins, Karnataka', latitude=15.3350, longitude=76.4600, radius=10, regional_score=75),
+                SafetyZone(name='Hitech City, Hyderabad', latitude=17.4435, longitude=78.3519, radius=50, regional_score=92),
+                SafetyZone(name='Munnar Tea Gardens, Kerala', latitude=10.0889, longitude=77.0595, radius=50, regional_score=88),
+                SafetyZone(name='Hampi Ruins, Karnataka', latitude=15.3350, longitude=76.4600, radius=50, regional_score=75),
                 
                 # === East India ===
-                SafetyZone(name='Park Street, Kolkata', latitude=22.5529, longitude=88.3542, radius=2, regional_score=87),
-                SafetyZone(name='Bodh Gaya, Bihar', latitude=24.6961, longitude=84.9912, radius=3, regional_score=92),
-                SafetyZone(name='Puri Beach, Odisha', latitude=19.8055, longitude=85.8275, radius=4, regional_score=70)
+                SafetyZone(name='Park Street, Kolkata', latitude=22.5529, longitude=88.3542, radius=50, regional_score=87),
+                SafetyZone(name='Bodh Gaya, Bihar', latitude=24.6961, longitude=84.9912, radius=50, regional_score=92),
+                SafetyZone(name='Puri Beach, Odisha', latitude=19.8055, longitude=85.8275, radius=50, regional_score=70)
             ])
             db.session.commit()
             print("Added comprehensive initial safety zones for India.")
