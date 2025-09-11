@@ -3,36 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Aegis</title>
+    <title>Login - ASTRA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/leaflet/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="/leaflet/dist/leaflet.css" />
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Fallback dark background */
+            background-image: url('/static/images/Corporate-travel-safety-1024x536-1.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed; /* Parallax effect */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75); /* Dark overlay for readability */
+            z-index: 0;
+        }
+        .login-container {
+            position: relative;
+            z-index: 10;
+            background-color: rgba(45, 55, 72, 0.85); /* Slightly transparent background for the form */
+            padding: 2.75rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid transparent; 
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            background-image: linear-gradient(rgba(45, 55, 72, 0.85), rgba(45, 55, 72, 0.85)), linear-gradient(45deg, #f6ad55, #ed8936); /* Inner bg, Outer border gradient */
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.9rem 1.3rem;
+            margin-bottom: 1.4rem;
+            border: 1px solid #5a67d8;
+            border-radius: 0.8rem;
+            background-color: #3b4455;
+            color: #e2e8f0;
+            font-size: 1.05rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .form-input::placeholder {
+            color: #a0aec0;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #ed8936; /* Orange focus border */
+            box-shadow: 0 0 0 4px rgba(237, 137, 54, 0.4); /* Orange glow on focus */
+            background-color: #4a5568;
+        }
+        .btn-gradient {
+            background-image: linear-gradient(45deg, #f6ad55, #ed8936); /* Orange to darker Orange */
+            transition: all 0.3s ease-in-out;
+            font-weight: 800; /* Extra bold text */
+            padding: 0.9rem 2.5rem;
+            border-radius: 0.8rem;
+            color: white;
+            width: 100%;
+            font-size: 1.2rem; /* Larger font */
+            box-shadow: 0 6px 20px rgba(237, 137, 54, 0.4);
+        }
+        .btn-gradient:hover {
+            transform: translateY(-3px); /* Lift more on hover */
+            box-shadow: 0 12px 35px rgba(237, 137, 54, 0.6); /* Enhanced shadow */
+        }
+        .text-gradient-primary {
+            background-image: linear-gradient(45deg, #fbd38d, #ed8936); /* Light Orange to Orange for title */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .link-style {
+            color: #f6ad55; /* Orange link color */
+            font-weight: 600;
+            transition: color 0.2s ease-in-out;
+        }
+        .link-style:hover {
+            color: #ed8936; /* Darker orange on hover */
+            text-decoration: underline;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
-    <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-sm border border-gray-700">
-        <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Welcome Back</h2>
+<body class="text-gray-200">
+
+    <div class="login-container">
+        <h2 class="text-4xl font-extrabold mb-10 text-gradient-primary">Welcome Back</h2>
         
-        <form onsubmit="event.preventDefault(); loginWithPhone();" class="space-y-6">
-            <input type="tel" id="phone" placeholder="Phone Number" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300">
-            <button type="submit" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Login</button>
+        <form onsubmit="event.preventDefault(); loginWithPhone();">
+            <input type="tel" id="phone" placeholder="Phone Number" required class="form-input">
+            <button type="submit" class="btn-gradient">Login</button>
         </form>
         
-        <div class="mt-4 text-center text-sm text-gray-400">
-            Don't have an account? <a href="/register" class="text-cyan-400 hover:underline">Register here</a>
-        </div>
-        <div class="mt-4 text-center text-sm text-gray-400">
-            <a href="/" class="text-cyan-400 hover:underline">Back to Home</a>
-        </div>
+        <p class="text-md text-gray-400 mt-7">
+            Don't have an account? 
+            <a href="/register" class="link-style">Register here</a>
+        </p>
+        <p class="text-md text-gray-400 mt-4">
+            <a href="/" class="link-style">Back to Home</a>
+        </p>
     </div>
 
-    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
-            <h3 id="alert-title" class="text-xl font-bold mb-4 text-white"></h3>
-            <p id="alert-message" class="text-gray-300 mb-6"></p>
-            <button onclick="closeAlertModal()" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
+    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-50">
+        <div class="login-container w-full max-w-sm">
+             <h3 id="alert-title" class="text-2xl font-bold mb-4 text-gradient-primary"></h3>
+             <p id="alert-message" class="text-gray-300 mb-6 text-lg"></p>
+             <button onclick="closeAlertModal()" class="btn-gradient">OK</button>
         </div>
     </div>
     
@@ -55,6 +143,8 @@
         async function loginWithPhone() {
             const phone = phoneInput.value;
             
+            
+            
             try {
                 const response = await fetch('/api/login', {
                     method: 'POST',
@@ -66,10 +156,10 @@
                     window.location.href = '/user_dashboard';
                 } else {
                     const error = await response.json();
-                    showAlertModal('Login Failed', error.error);
+                    showAlertModal('Login Failed', error.error || 'An unknown error occurred.');
                 }
             } catch (error) {
-                showAlertModal('Network Error', 'Failed to connect to the server.');
+                showAlertModal('Network Error', 'Failed to connect to the server. Please try again later.');
             }
         }
     </script>

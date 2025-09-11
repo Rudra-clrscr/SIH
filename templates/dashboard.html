@@ -3,211 +3,209 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tourist Safety Dashboard</title>
+    <title>ASTRA Authority Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        #map { height: 500px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        @keyframes subtle-pan {
+            0% { transform: translate(0%, 0%) rotate(0deg); }
+            25% { transform: translate(5%, -10%) rotate(10deg); }
+            50% { transform: translate(-5%, 10%) rotate(0deg); }
+            75% { transform: translate(10%, 5%) rotate(-10deg); }
+            100% { transform: translate(0%, 0%) rotate(0deg); }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed; top: 50%; left: 50%;
+            width: 150vw; height: 150vh;
+            background-image: radial-gradient(circle at center, rgba(22, 78, 99, 0.5), rgba(59, 130, 246, 0.3), transparent 60%);
+            transform-origin: center;
+            animation: subtle-pan 25s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+            filter: blur(100px);
+            z-index: -1;
+        }
+
+        .card {
+            background-color: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+        }
+        /* UPDATED: Light background for map placeholder */
+        .leaflet-container {
+            background: #e5e7eb; /* Light Gray */
+            border-radius: 1rem;
+        }
+        /* Make Leaflet popups dark to contrast with the light map */
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: #2d3748;
+            color: #e2e8f0;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+        }
+        .text-gradient-primary {
+            background-image: linear-gradient(45deg, #fbd38d, #ed8936);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="text-gray-200 min-h-screen">
 
-    <header class="bg-white shadow-md">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-800">Authorities Dashboard</h1>
-            <div class="flex items-center space-x-2">
-                <div class="w-4 h-4 rounded-full bg-green-500 animate-pulse"></div>
-                <span class="font-semibold">Live</span>
-            </div>
-        </div>
+    <header class="fixed top-0 left-0 right-0 z-20">
+        <nav class="flex justify-between items-center p-6 bg-gray-900/30 backdrop-blur-md">
+            <h1 class="text-3xl font-extrabold">ASTRA Authority Dashboard</h1>
+            <a href="{{ url_for('logout_user') }}" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-lg transition duration-300">Logout</a>
+        </nav>
     </header>
 
-    <main class="container mx-auto p-6">
-        <div class="bg-white p-4 rounded-lg shadow-lg mb-6">
-            <h2 class="text-xl font-semibold mb-4">Live Tourist Map</h2>
-            <div id="map" class="rounded-lg z-0"></div>
+    <main class="w-full max-w-screen-2xl mx-auto pt-28 p-8">
+        <div class="card mb-8">
+            <div id="map" class="h-[400px] w-full"></div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Tourist Feed -->
-            <div class="bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-xl font-semibold mb-4">Live Tourist Feed</h2>
-                <div class="overflow-auto max-h-96">
-                    <table class="w-full table-auto">
-                        <thead class="bg-gray-50 sticky top-0">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="card">
+                <h2 class="text-2xl font-bold mb-4 text-gradient-primary">Live Tourist Feed</h2>
+                <div class="overflow-y-auto max-h-[450px]">
+                    <table class="w-full text-left">
+                        <thead class="sticky top-0 bg-gray-800">
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Safety Score</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Location</th>
+                                <th class="p-3">Name</th>
+                                <th class="p-3">Safety Score</th>
+                                <th class="p-3">Last Location</th>
                             </tr>
                         </thead>
-                        <tbody id="tourists-table-body" class="bg-white divide-y divide-gray-200">
-                           <!-- Data will be injected here -->
-                        </tbody>
+                        <tbody id="tourist-feed-body">
+                            </tbody>
                     </table>
                 </div>
             </div>
 
-            <!-- Alerts and Anomalies Column -->
-            <div class="space-y-6">
-                <!-- AI-Detected Anomalies -->
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <h2 class="text-xl font-semibold mb-4">AI-Detected Anomalies</h2>
-                    <div id="anomalies-list" class="space-y-4 max-h-96 overflow-y-auto">
-                        <!-- Anomaly data will be injected here -->
-                    </div>
+            <div class="space-y-8">
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4 text-gradient-primary">AI-Detected Anomalies</h2>
+                    <div id="anomalies-list" class="space-y-3 overflow-y-auto max-h-[200px]">
+                        </div>
                 </div>
-
-                <!-- Alerts History -->
-                <div class="bg-white p-6 rounded-lg shadow-lg">
-                    <h2 class="text-xl font-semibold mb-4">Manual Alerts History</h2>
-                    <div id="alerts-list" class="space-y-4 max-h-96 overflow-y-auto">
-                        <!-- Alert data will be injected here -->
-                    </div>
+                <div class="card">
+                    <h2 class="text-2xl font-bold mb-4 text-gradient-primary">Manual Alerts History</h2>
+                    <div id="alerts-list" class="space-y-3 overflow-y-auto max-h-[150px]">
+                        </div>
                 </div>
             </div>
         </div>
     </main>
-
-    <script src="/static/dist/leaflet.js"></script>
+    
     <script>
-        const API_BASE_URL = "/api/dashboard";
-        let map;
-        let touristMarkers = {};
+        const map = L.map('map').setView([22.5726, 88.3639], 5); // Centered on India
+        let touristMarkers = L.layerGroup().addTo(map);
 
-        function getScoreColor(score) {
-            if (score > 75) return 'text-green-600';
-            if (score > 40) return 'text-yellow-600';
-            return 'text-red-600';
-        }
+        // UPDATED: Changed tileLayer URL from 'dark_all' to 'light_all'
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO &copy; OpenStreetMap',
+            maxZoom: 20
+        }).addTo(map);
 
-        function parseLocation(locationStr) {
-            if (!locationStr || !locationStr.includes('Lat:')) return null;
-            const parts = locationStr.split(',');
-            const lat = parseFloat(parts[0].split(':')[1].trim());
-            const lon = parseFloat(parts[1].split(':')[1].trim());
-            return [lat, lon];
-        }
-
-        async function fetchTourists() {
+        function parseLocation(locationString) {
+            if (!locationString) return null;
             try {
-                const response = await fetch(`${API_BASE_URL}/tourists`);
-                const data = await response.json();
-                const tableBody = document.getElementById('tourists-table-body');
-                tableBody.innerHTML = ''; 
+                const parts = locationString.split(',');
+                const lat = parseFloat(parts[0].split(':')[1].trim());
+                const lon = parseFloat(parts[1].split(':')[1].trim());
+                return [lat, lon];
+            } catch (e) {
+                return null;
+            }
+        }
 
-                const activeTouristIds = new Set();
-                data.tourists.forEach(tourist => {
-                    activeTouristIds.add(tourist.id);
-                    
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="px-4 py-2 whitespace-nowrap">${tourist.name}</td>
-                        <td class="px-4 py-2 whitespace-nowrap font-bold ${getScoreColor(tourist.safety_score)}">${tourist.safety_score}</td>
-                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">${tourist.last_known_location}</td>
+        async function fetchAndUpdateData() {
+            try {
+                // Fetch all data concurrently
+                const [touristsRes, anomaliesRes, alertsRes] = await Promise.all([
+                    fetch('/api/dashboard/tourists'),
+                    fetch('/api/dashboard/anomalies'),
+                    fetch('/api/dashboard/alerts')
+                ]);
+
+                const touristsData = await touristsRes.json();
+                const anomaliesData = await anomaliesRes.json();
+                const alertsData = await alertsRes.json();
+
+                // Update Tourist Feed and Map Markers
+                const touristBody = document.getElementById('tourist-feed-body');
+                touristBody.innerHTML = '';
+                touristMarkers.clearLayers();
+
+                touristsData.tourists.forEach(t => {
+                    const scoreColor = t.safety_score < 40 ? 'text-red-400' : (t.safety_score < 70 ? 'text-yellow-400' : 'text-green-400');
+                    touristBody.innerHTML += `
+                        <tr class="border-b border-gray-700 hover:bg-gray-700/50">
+                            <td class="p-3">${t.name}</td>
+                            <td class="p-3 font-bold ${scoreColor}">${t.safety_score}/100</td>
+                            <td class="p-3 font-mono text-sm">${t.last_known_location || 'N/A'}</td>
+                        </tr>
                     `;
-                    tableBody.appendChild(row);
-
-                    const location = parseLocation(tourist.last_known_location);
+                    const location = parseLocation(t.last_known_location);
                     if (location) {
-                        const popupContent = `<b>${tourist.name}</b><br>Score: ${tourist.safety_score}`;
-                        if (touristMarkers[tourist.id]) {
-                            touristMarkers[tourist.id].setLatLng(location).setPopupContent(popupContent);
-                        } else {
-                            touristMarkers[tourist.id] = L.marker(location).addTo(map).bindPopup(popupContent);
-                        }
+                        const marker = L.marker(location).addTo(touristMarkers);
+                        marker.bindPopup(`<b>${t.name}</b><br>Safety Score: ${t.safety_score}`);
                     }
                 });
 
-                Object.keys(touristMarkers).forEach(id => {
-                    if (!activeTouristIds.has(parseInt(id))) {
-                        map.removeLayer(touristMarkers[id]);
-                        delete touristMarkers[id];
-                    }
-                });
-
-            } catch (error) {
-                console.error("Failed to fetch tourists:", error);
-            }
-        }
-
-        async function fetchAlerts() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/alerts`);
-                const data = await response.json();
-                const alertsList = document.getElementById('alerts-list');
-                alertsList.innerHTML = '';
-
-                if (data.alerts.length === 0) {
-                    alertsList.innerHTML = '<p class="text-center py-4 text-gray-500">No manual alerts.</p>';
-                    return;
-                }
-
-                data.alerts.forEach(alert => {
-                    const alertElement = document.createElement('div');
-                    alertElement.className = 'p-3 rounded-lg bg-red-100 border border-red-300 text-sm';
-                    alertElement.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <p class="font-bold text-red-800">${alert.alert_type}</p>
-                            <span class="text-xs text-red-600">${alert.timestamp}</span>
-                        </div>
-                        <p class="text-gray-700 mt-1"><span class="font-semibold">Tourist:</span> ${alert.tourist_name}</p>
-                    `;
-                    alertsList.appendChild(alertElement);
-                });
-            } catch (error) {
-                console.error("Failed to fetch alerts:", error);
-            }
-        }
-
-        async function fetchAnomalies() {
-            try {
-                const response = await fetch(`${API_BASE_URL}/anomalies`);
-                const data = await response.json();
+                // Update Anomalies List
                 const anomaliesList = document.getElementById('anomalies-list');
-                anomaliesList.innerHTML = '';
-
-                if (data.anomalies.length === 0) {
-                    anomaliesList.innerHTML = '<p class="text-center py-4 text-gray-500">No anomalies detected.</p>';
-                    return;
-                }
-
-                data.anomalies.forEach(anomaly => {
-                    const anomalyElement = document.createElement('div');
-                    anomalyElement.className = 'p-3 rounded-lg bg-yellow-100 border border-yellow-300 text-sm';
-                    anomalyElement.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <p class="font-bold text-yellow-800">${anomaly.anomaly_type}</p>
-                            <span class="text-xs text-yellow-600">${anomaly.timestamp}</span>
+                anomaliesList.innerHTML = anomaliesData.anomalies.length ? '' : '<p class="text-gray-400">No active anomalies.</p>';
+                anomaliesData.anomalies.forEach(a => {
+                    const isCritical = a.anomaly_type.toLowerCase().includes('critical');
+                    const bgColor = isCritical ? 'bg-red-500/20' : 'bg-yellow-500/20';
+                    anomaliesList.innerHTML += `
+                        <div class="p-3 rounded-lg ${bgColor}">
+                            <div class="flex justify-between items-center text-sm">
+                                <p class="font-bold">${a.anomaly_type}</p>
+                                <p class="font-mono">${a.timestamp}</p>
+                            </div>
+                            <p class="text-sm mt-1"><b>Tourist:</b> ${a.tourist_name} | ${a.description}</p>
                         </div>
-                        <p class="text-gray-700 mt-1"><span class="font-semibold">Tourist:</span> ${anomaly.tourist_name}</p>
-                        <p class="text-gray-600 text-xs mt-1">${anomaly.description}</p>
                     `;
-                    anomaliesList.appendChild(anomalyElement);
                 });
+                
+                // Update Alerts List
+                const alertsList = document.getElementById('alerts-list');
+                alertsList.innerHTML = alertsData.alerts.length ? '' : '<p class="text-gray-400">No manual alerts in history.</p>';
+                alertsData.alerts.forEach(a => {
+                    alertsList.innerHTML += `
+                        <div class="p-3 rounded-lg bg-red-800/40">
+                            <div class="flex justify-between items-center text-sm">
+                                <p class="font-bold">${a.alert_type}</p>
+                                <p class="font-mono">${a.timestamp}</p>
+                            </div>
+                            <p class="text-sm mt-1"><b>Tourist:</b> ${a.tourist_name} | Location: ${a.location || 'N/A'}</p>
+                        </div>
+                    `;
+                });
+
             } catch (error) {
-                console.error("Failed to fetch anomalies:", error);
+                console.error("Failed to fetch dashboard data:", error);
             }
         }
-        
-        window.onload = () => {
-            map = L.map('map').setView([28.6139, 77.2090], 5);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-            
-            // Initial data fetch
-            fetchTourists();
-            fetchAlerts();
-            fetchAnomalies();
 
-            // Set up intervals to refresh data every 5 seconds
-            setInterval(() => {
-                fetchTourists();
-                fetchAlerts();
-                fetchAnomalies();
-            }, 5000); 
-        };
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAndUpdateData(); // Initial fetch
+            setInterval(fetchAndUpdateData, 10000); // Refresh every 10 seconds
+        });
     </script>
 </body>
 </html>

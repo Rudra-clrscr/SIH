@@ -1,87 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Aegis</title>
+    <title>Dashboard - ASTRA</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        @keyframes subtle-pan {
+            0% { transform: translate(0%, 0%) rotate(0deg); }
+            25% { transform: translate(5%, -10%) rotate(10deg); }
+            50% { transform: translate(-5%, 10%) rotate(0deg); }
+            75% { transform: translate(10%, 5%) rotate(-10deg); }
+            100% { transform: translate(0%, 0%) rotate(0deg); }
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
         }
 
-        #userMap {
-            height: 300px;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed; top: 50%; left: 50%;
+            width: 150vw; height: 150vh;
+            background-image: radial-gradient(circle at center, rgba(22, 78, 99, 0.5), rgba(59, 130, 246, 0.3), transparent 60%);
+            transform-origin: center;
+            animation: subtle-pan 25s cubic-bezier(0.4, 0.0, 0.2, 1) infinite;
+            filter: blur(100px);
+            z-index: -1;
+        }
+
+        .card {
+            background-color: rgba(31, 41, 55, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+        }
+        .text-gradient-primary {
+            background-image: linear-gradient(45deg, #fbd38d, #ed8936);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .leaflet-container {
+            background: #e5e7eb;
+            border-radius: 1rem;
+        }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        #panic-button {
+            background-image: linear-gradient(45deg, #ef4444, #dc2626);
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+            animation: pulse-red 2s infinite;
+        }
+        #panic-button:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 12px 35px rgba(239, 68, 68, 0.6);
+            animation-play-state: paused;
         }
     </style>
 </head>
+<body class="bg-gray-900 text-white min-h-screen">
 
-<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 space-y-8">
+    <header class="fixed top-0 left-0 right-0 z-20">
+        <nav class="flex justify-between items-center p-6 bg-gray-900/30 backdrop-blur-md">
+            <h1 class="text-3xl font-extrabold">ASTRA</h1>
+            <a href="{{ url_for('logout_user') }}" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-5 rounded-lg transition duration-300">Logout</a>
+        </nav>
+    </header>
 
-    <div class="w-full max-w-2xl text-center">
-        <h1 class="text-3xl font-bold">Welcome, <span class="text-cyan-400">{{ tourist.name }}</span>!</h1>
-        <p id="gps-status" class="text-sm text-yellow-400 mt-2 animate-pulse">Initializing GPS...</p>
-    </div>
+    <main class="w-full max-w-3xl mx-auto pt-28 p-8 space-y-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold">Welcome, <span class="text-gradient-primary">{{ tourist.name }}</span>!</h1>
+            <p id="gps-status" class="text-sm text-yellow-400 mt-2 animate-pulse">Initializing GPS...</p>
+        </div>
 
-    <div class="bg-gray-800 p-6 rounded-2xl shadow-xl w-full max-w-2xl border border-gray-700">
-        <div id="userMap" class="rounded-lg z-0 mb-6"></div>
-        <h2 class="text-2xl font-bold text-center mb-6 text-cyan-400">Your Information</h2>
-        <div class="space-y-3 text-base text-gray-300">
-            <div class="flex justify-between">
-                <span class="font-semibold text-gray-400">Phone Number:</span>
-                <span>{{ tourist.phone }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="font-semibold text-gray-400">KYC ID:</span>
-                <span>{{ tourist.kyc_id }}</span>
-            </div>
-            <div class="flex justify-between">
-                <span class="font-semibold text-gray-400">Visit Ends On:</span>
-                <span>{{ tourist.visit_end_date.strftime('%d-%b-%Y') }}</span>
-            </div>
-            <div class="flex justify-between items-center pt-2 border-t border-gray-700">
-                <span class="font-semibold text-gray-400">Current Safety Score:</span>
-                <span
-                    class="text-2xl font-bold {% if tourist.safety_score > 75 %} text-green-400 {% elif tourist.safety_score > 40 %} text-yellow-400 {% else %} text-red-500 {% endif %}">
-                    {{ tourist.safety_score }}
-                </span>
-            </div>
-            <div class="pt-2 border-t border-gray-700">
-                <span class="font-semibold text-gray-400 text-sm">Blockchain Digital ID:</span>
-                <p class="font-mono text-xs text-cyan-400 break-all">{{ tourist.digital_id }}</p>
+        <div class="card w-full">
+            <div id="userMap" class="h-64 md:h-80 rounded-lg z-0 mb-6"></div>
+            <div class="space-y-4 text-base text-gray-300">
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Phone Number:</span>
+                    <span>{{ tourist.phone }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">KYC ID:</span>
+                    <span>{{ tourist.kyc_id }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="font-semibold text-gray-400">Visit Ends On:</span>
+                    <span>{{ tourist.visit_end_date.strftime('%d-%b-%Y') }}</span>
+                </div>
+                <div class="flex justify-between items-center pt-3 border-t border-gray-600">
+                    <span class="font-semibold text-gray-400">Current Safety Score:</span>
+                    <span class="text-3xl font-bold {% if tourist.safety_score > 75 %} text-green-400 {% elif tourist.safety_score > 40 %} text-yellow-400 {% else %} text-red-500 {% endif %}">
+                        {{ tourist.safety_score }}
+                    </span>
+                </div>
+                <div class="pt-3 border-t border-gray-600">
+                    <span class="font-semibold text-gray-400 text-sm">Blockchain Digital ID:</span>
+                    <p class="font-mono text-xs text-cyan-300 break-all pt-2">{{ tourist.digital_id }}</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="text-center">
-        <button id="panic-button"
-            class="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-8 rounded-lg transition duration-300 shadow-md">PANIC</button>
-    </div>
+        <div class="card text-center">
+            <h2 class="text-xl font-semibold mb-4 text-gray-300">Emergency Alert</h2>
+            <button id="panic-button" class="text-white font-extrabold text-2xl uppercase rounded-full w-32 h-32 flex items-center justify-center mx-auto">
+                PANIC
+            </button>
+        </div>
+    </main>
 
-    <a href="/api/logout" class="text-gray-400 hover:text-cyan-400 transition duration-300">Logout</a>
-
-    <script src="/static/dist/leaflet.js"></script>
     <script>
         let userMap, userMarker;
         function initUserMap() {
-            userMap = L.map('userMap').setView([28.6139, 77.2090], 5);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(userMap);
+            userMap = L.map('userMap').setView([28.3670, 79.4304], 5);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; CARTO &copy; OpenStreetMap' }).addTo(userMap);
             fetchAndDrawZones();
         }
         async function fetchAndDrawZones() {
             const response = await fetch('/api/safety_zones');
             const data = await response.json();
-            data.safety_zones.forEach(z => L.circle([z.latitude, z.longitude], { color: getZoneColor(z.regional_score), fillColor: getZoneColor(z.regional_score), fillOpacity: 0.2, radius: z.radius * 1000 }).addTo(userMap).bindPopup(`<b>${z.name}</b><br>Score: ${z.regional_score}`));
+            data.safety_zones.forEach(z => L.circle([z.latitude, z.longitude], { color: getZoneColor(z.regional_score), fillColor: getZoneColor(z.regional_score), fillOpacity: 0.15, radius: z.radius * 1000 }).addTo(userMap).bindPopup(`<b>${z.name}</b><br>Score: ${z.regional_score}`));
         }
         function getZoneColor(s) { if (s > 80) return 'green'; if (s > 60) return 'blue'; if (s > 30) return 'orange'; return 'red'; }
+        
         async function sendLocationUpdate() {
+            if (!navigator.geolocation) {
+                const gpsStatus = document.getElementById('gps-status');
+                gpsStatus.textContent = 'Error: Geolocation is not supported by your browser.';
+                gpsStatus.classList.add('text-red-500');
+                return;
+            }
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const { latitude: lat, longitude: lon } = pos.coords, latLng = [lat, lon];
                 if (userMap) {
-                    userMap.setView(latLng, 13);
+                    userMap.setView(latLng, 14);
                     if (!userMarker) userMarker = L.marker(latLng).addTo(userMap).bindPopup("Your location");
                     else userMarker.setLatLng(latLng);
                 }
@@ -101,18 +170,19 @@
                 gpsStatus.textContent = 'Error: GPS permission denied.';
                 gpsStatus.classList.remove('animate-pulse', 'text-yellow-400');
                 gpsStatus.classList.add('text-red-500');
-            });
+            }, { enableHighAccuracy: true });
         }
 
-        // --- UPDATED PANIC BUTTON LOGIC ---
         document.getElementById('panic-button').addEventListener('click', async () => {
             if (confirm("Are you sure you want to send a PANIC alert? This will immediately notify authorities.")) {
                 try {
                     const response = await fetch('/api/panic', { method: 'POST' });
                     if (response.ok) {
-                        alert("Panic alert has been sent to the authorities.");
+                        alert("Panic alert has been sent to the authorities. Your safety score is now 0.");
+                        window.location.reload(); // Reload to reflect score change
                     } else {
-                        alert("Failed to send panic alert. Please try again.");
+                        const error = await response.json();
+                        alert(`Failed to send panic alert: ${error.error}`);
                     }
                 } catch (error) {
                     console.error("Error sending panic alert:", error);
@@ -124,9 +194,8 @@
         window.onload = () => {
             initUserMap();
             sendLocationUpdate();
-            setInterval(sendLocationUpdate, 15000);
+            setInterval(sendLocationUpdate, 15000); // Send location every 15 seconds
         };
     </script>
 </body>
-
 </html>

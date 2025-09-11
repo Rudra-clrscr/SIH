@@ -3,97 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aegis - Smart Tourist Safety System</title>
+    <title>ASTRA - Smart Tourist Safety System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="/leaflet/dist/leaflet.js"></script>
     <link rel="stylesheet" href="/leaflet/dist/leaflet.css" />
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
         }
-        .text-gradient {
-            background-image: linear-gradient(45deg, #10b981, #06b6d4, #0ea5e9);
+        .text-gradient-primary {
+            background-image: linear-gradient(45deg, #38b2ac, #63b3ed); /* Teal to Light Blue */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .text-gradient-secondary {
+            background-image: linear-gradient(45deg, #a78bfa, #c084fc); /* Purple to Lighter Purple */
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         .btn-gradient {
-            background-image: linear-gradient(45deg, #06b6d4, #0ea5e9);
+            background-image: linear-gradient(45deg, #06b6d4, #3b82f6); /* Cyan to Blue */
             transition: all 0.3s ease;
         }
         .btn-gradient:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.4);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4); /* Enhanced shadow */
+        }
+        .card-hover-effect {
+            transition: all 0.3s ease-in-out;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid transparent; /* Base border for effect */
+        }
+        .card-hover-effect::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 1rem; /* Match card border-radius */
+            padding: 1px; /* Control border thickness */
+            background: linear-gradient(45deg, #06b6d4, #3b82f6); /* Gradient border */
+            -webkit-mask: 
+               linear-gradient(#fff 0 0) content-box, 
+               linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: -1; /* Place behind content */
+        }
+        .card-hover-effect:hover {
+            transform: translateY(-5px); /* Lift slightly more */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* Deeper shadow */
+            background-color: #2d3748; /* Slightly darker on hover */
+        }
+        .card-hover-effect:hover::before {
+            opacity: 1; /* Show gradient border on hover */
         }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
 
-    <header class="w-full py-6 px-4 md:px-8 flex justify-between items-center shadow-lg bg-gray-800">
+    <header class="w-full py-6 px-4 md:px-8 flex justify-between items-center fixed top-0 left-0 right-0 z-50 bg-gray-800/80 backdrop-blur-md shadow-xl">
         <div class="flex items-center space-x-2">
-            <svg class="h-8 w-8 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-9 w-9 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM6 10a4 4 0 118 0 4 4 0 01-8 0z" clip-rule="evenodd" fill-rule="evenodd"></path>
             </svg>
-            <h1 class="text-3xl font-extrabold text-white tracking-tight">Aegis</h1>
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">ASTRA</h1>
         </div>
         <nav class="space-x-4">
-            <a href="/login" class="px-5 py-2 rounded-full text-lg font-semibold transition duration-300 hover:text-cyan-400">Login</a>
+            <a href="/login" class="px-5 py-2 rounded-full text-lg font-semibold text-gray-300 hover:text-cyan-400 transition duration-300">Login</a>
             <a href="/register" class="btn-gradient px-6 py-2 rounded-full text-lg font-bold text-white shadow-lg">Register</a>
         </nav>
     </header>
 
-    <main class="w-full flex-1 flex items-center justify-center p-8">
-        <div class="text-center max-w-4xl">
-            <p class="text-sm font-semibold uppercase text-cyan-400 mb-2">Smart Safety, Seamless Travel</p>
-            <h2 class="text-4xl md:text-6xl font-extrabold mb-6 leading-tight tracking-tighter text-white">
+    <main 
+      class="relative w-full min-h-screen flex items-center justify-center p-8 bg-cover bg-center bg-fixed" 
+      style="background-image: url('/static/images/Corporate-Travel-Safety.jpg');">
+      
+        <div class="absolute inset-0 bg-black/70"></div> <div class="relative text-center max-w-5xl">
+            <p class="text-sm md:text-md font-bold uppercase text-teal-400 mb-3 tracking-widest">Smart Safety, Seamless Travel</p>
+            <h2 class="text-5xl md:text-7xl font-extrabold mb-8 leading-tight tracking-tighter text-gradient-primary">
                 Ensuring Your Journey is as Safe as it is Memorable
             </h2>
-            <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-                Aegis is a comprehensive, AI-powered system designed to protect visitors in remote and high-risk areas. From digital IDs to real-time alerts, we've got you covered.
+            <p class="text-lg md:text-xl text-gray-300 mb-12 max-w-3xl mx-auto">
+                ASTRA is a comprehensive, AI-powered system designed to protect visitors in remote and high-risk areas. From digital IDs to real-time alerts, we've got you covered.
             </p>
-            <a href="/register" class="btn-gradient px-10 py-4 rounded-full text-xl font-extrabold text-white shadow-lg">Get Started</a>
+            <a href="/register" class="btn-gradient px-12 py-4 rounded-full text-xl font-extrabold text-white shadow-xl">Get Started</a>
         </div>
     </main>
 
-    <section class="w-full py-16 px-4 md:px-8 bg-gray-800 text-white shadow-inner">
-        <div class="max-w-6xl mx-auto text-center">
-            <h3 class="text-3xl md:text-4xl font-extrabold mb-12 text-center text-gradient">Our Core Features</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div class="bg-gray-700 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                    <svg class="h-12 w-12 text-cyan-400 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+    <section class="w-full py-20 px-4 md:px-8 bg-gray-800 text-white shadow-inner">
+        <div class="max-w-7xl mx-auto text-center">
+            <h3 class="text-4xl md:text-5xl font-extrabold mb-16 text-center text-gradient-secondary">Our Core Features</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+                <div class="bg-gray-700 p-8 rounded-2xl shadow-xl card-hover-effect">
+                    <svg class="h-14 w-14 text-teal-400 mx-auto mb-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M4 4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h16v12H4V6zm-2 0h1a1 1 0 011-1h16a1 1 0 011 1h1v-.5a.5.5 0 00-1 0V4a.5.5 0 00.5.5H2.5a.5.5 0 00.5-.5V4H2v.5a.5.5 0 00-.5.5h-.5v-.5zM12 11a3 3 0 100 6 3 3 0 000-6z"></path>
                     </svg>
-                    <h4 class="text-xl font-semibold mb-2">Secure Digital ID</h4>
-                    <p class="text-sm text-gray-400">A tamper-proof, blockchain-based ID for seamless verification and privacy.</p>
+                    <h4 class="text-2xl font-semibold mb-3 text-white">Secure Digital ID</h4>
+                    <p class="text-base text-gray-400">A tamper-proof, blockchain-based ID for seamless verification and privacy.</p>
                 </div>
-                <div class="bg-gray-700 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                    <svg class="h-12 w-12 text-cyan-400 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gray-700 p-8 rounded-2xl shadow-xl card-hover-effect">
+                    <svg class="h-14 w-14 text-cyan-400 mx-auto mb-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2a10 10 0 100 20 10 10 0 000-20zM6 10a4 4 0 118 0 4 4 0 01-8 0z"></path>
                         <path d="M15 10a3 3 0 10-6 0 3 3 0 006 0z" clip-rule="evenodd" fill-rule="evenodd"></path>
                     </svg>
-                    <h4 class="text-xl font-semibold mb-2">Smart Mobile App</h4>
-                    <p class="text-sm text-gray-400">Features geo-fencing, a panic button, and a dynamic safety score.</p>
+                    <h4 class="text-2xl font-semibold mb-3 text-white">Smart Mobile App</h4>
+                    <p class="text-base text-gray-400">Features geo-fencing, a panic button, and a dynamic safety score.</p>
                 </div>
-                <div class="bg-gray-700 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                    <svg class="h-12 w-12 text-cyan-400 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gray-700 p-8 rounded-2xl shadow-xl card-hover-effect">
+                    <svg class="h-14 w-14 text-indigo-400 mx-auto mb-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2.22 15.68a.75.75 0 01-1.06 1.06l-4-4a.75.75 0 011.06-1.06l3.47 3.47 6.94-6.94a.75.75 0 011.06 1.06L10.5 17.56z" clip-rule="evenodd" fill-rule="evenodd"></path>
                     </svg>
-                    <h4 class="text-xl font-semibold mb-2">AI Anomaly Detection</h4>
-                    <p class="text-sm text-gray-400">Predictive alerts for unusual travel patterns or prolonged inactivity.</p>
+                    <h4 class="text-2xl font-semibold mb-3 text-white">AI Anomaly Detection</h4>
+                    <p class="text-base text-gray-400">Predictive alerts for unusual travel patterns or prolonged inactivity.</p>
                 </div>
-                <div class="bg-gray-700 p-6 rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                    <svg class="h-12 w-12 text-cyan-400 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gray-700 p-8 rounded-2xl shadow-xl card-hover-effect">
+                    <svg class="h-14 w-14 text-purple-400 mx-auto mb-5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 14a2 2 0 100-4 2 2 0 000 4z"></path>
-                        <path fill-rule="evenodd" d="M12 2c-4.418 0-8 3.582-8 8 0 4.418 8 14 8 14s8-9.582 8-14c0-4.418-3.582-8-8-8zm0 2c3.314 0 6 2.686 6 6 0 3.314-6 10-6 10s-6-6.686-6-10c0-3.314 2.686-6 6-6z" clip-rule="evenodd"></path>
+                        <path fill-rule="evenodd" d="M12 2c-4.418 0-8 3.582-8 8 0 4.418 8 14 8 14s8-9.582 8-14c0-4.418-3.582-8-8-8zm0 2c3.314 0 6 2.686 6 6 0 3.314-6 10-6 10s-6-6.686-6-10c0-3.314 2.686-6 6-6z" clip-rule="evenodd" fill-rule="evenodd"></path>
                     </svg>
-                    <h4 class="text-xl font-semibold mb-2">Real-time Dashboard</h4>
-                    <p class="text-sm text-gray-400">Live visualization of tourist locations and a history of all alerts for rapid response.</p>
+                    <h4 class="text-2xl font-semibold mb-3 text-white">Real-time Dashboard</h4>
+                    <p class="text-base text-gray-400">Live visualization of tourist locations and a history of all alerts for rapid response.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <footer class="w-full py-8 px-4 md:px-8 text-center text-gray-500 text-sm">
-        <p>Your safety is our priority. Travel with peace of mind. &copy; 2025 Aegis. All rights reserved.</p>
+    <footer class="w-full py-8 px-4 md:px-8 text-center bg-gray-900 text-gray-500 text-sm">
+        <p>Your safety is our priority. Travel with peace of mind. &copy; 2025 ASTRA. All rights reserved.</p>
     </footer>
 
 </body>

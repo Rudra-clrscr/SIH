@@ -3,45 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Aegis</title>
+    <title>ASTRA - Register</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/leaflet/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="/leaflet/dist/leaflet.css" />
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c;
+            background-image: url('/static/images/Corporate-travel-safety-1024x536-1.jpg'); 
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.75);
+            z-index: 0;
+        }
+        .register-container {
+            position: relative;
+            z-index: 10;
+            background-color: rgba(45, 55, 72, 0.85);
+            padding: 2.75rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid transparent;
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            background-image: linear-gradient(rgba(45, 55, 72, 0.85), rgba(45, 55, 72, 0.85)), linear-gradient(45deg, #f6ad55, #ed8936);
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.9rem 1.3rem;
+            margin-bottom: 1.4rem;
+            border: 1px solid #5a67d8;
+            border-radius: 0.8rem;
+            background-color: #3b4455;
+            color: #e2e8f0;
+            font-size: 1.05rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #ed8936;
+            box-shadow: 0 0 0 4px rgba(237, 137, 54, 0.4);
+            background-color: #4a5568;
+        }
+        .btn {
+            transition: all 0.3s ease-in-out;
+            font-weight: 800;
+            padding: 0.9rem 2.5rem;
+            border-radius: 0.8rem;
+            color: white;
+            width: 100%;
+            font-size: 1.2rem;
+        }
+        .btn-orange {
+            background-image: linear-gradient(45deg, #f6ad55, #ed8936);
+            box-shadow: 0 6px 20px rgba(237, 137, 54, 0.4);
+        }
+        .btn-orange:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(237, 137, 54, 0.6);
+        }
+        .btn-green {
+            background-image: linear-gradient(45deg, #48bb78, #38a169);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+        .btn-green:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(72, 187, 120, 0.6);
+        }
+        .text-gradient-primary {
+            background-image: linear-gradient(45deg, #fbd38d, #ed8936);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .link-style { color: #f6ad55; font-weight: 600; }
+        .link-style:hover { color: #ed8936; text-decoration: underline; }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
-    <div class="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-700">
-        <h2 class="text-3xl font-bold text-center mb-6 text-cyan-400">Create Your Account</h2>
+<body class="text-gray-200">
+
+    <div class="register-container">
+        <h2 class="text-4xl font-extrabold mb-8 text-gradient-primary">Register for ASTRA</h2>
+        
         <form onsubmit="event.preventDefault();" class="space-y-6">
             <div id="step-1">
-                <input type="text" id="name" placeholder="Full Name" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300 mb-4">
-                <input type="tel" id="phone" placeholder="Phone Number" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300 mb-4">
-                <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300 mb-4">
-                <input type="number" id="duration" placeholder="Duration of Visit (Days)" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300 mb-4">
-                <button type="button" id="send-otp-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Send OTP</button>
+                <input type="text" id="name" placeholder="Full Name" required class="form-input">
+                <input type="tel" id="phone" placeholder="Phone Number" required class="form-input">
+                <select id="kyc_type" class="form-input">
+                    <option value="Aadhaar">Aadhaar</option>
+                    <option value="Passport">Passport</option>
+                </select>
+                <input type="text" id="kyc_id" placeholder="Aadhaar/Passport No." required class="form-input">
+                <input type="number" id="visit_duration_days" placeholder="Duration of Visit (Days)" required class="form-input">
+                <button type="button" id="send-otp-btn" class="btn btn-orange">Send OTP</button>
             </div>
 
             <div id="step-2" class="hidden">
-                <input type="text" id="otp" placeholder="Enter OTP" required class="w-full bg-gray-700 border-2 border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:border-cyan-500 transition duration-300 mb-4">
-                <button type="button" id="verify-and-register-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition duration-300 shadow-md">Verify & Register</button>
+                <input type="text" id="otp" placeholder="Enter OTP from Terminal" required class="form-input">
+                <button type="button" id="verify-and-register-btn" class="btn btn-green">Verify & Register</button>
             </div>
         </form>
 
-        <div class="mt-4 text-center text-sm text-gray-400">
-            Already have an account? <a href="/login" class="text-cyan-400 hover:underline">Login here</a>
-        </div>
-        <div class="mt-4 text-center text-sm text-gray-400">
-            <a href="/" class="text-cyan-400 hover:underline">Back to Home</a>
-        </div>
+        <p class="text-md text-gray-400 mt-7">
+            Already have an account? <a href="/login" class="link-style">Login here</a>
+        </p>
     </div>
 
-    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
-        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl max-w-sm w-full">
-            <h3 id="alert-title" class="text-xl font-bold mb-4 text-white"></h3>
-            <p id="alert-message" class="text-gray-300 mb-6"></p>
-            <button id="alert-ok-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 rounded-lg transition duration-300">OK</button>
+    <div id="alert-modal" class="fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center p-4 z-50">
+        <div class="register-container w-full max-w-sm"> <h3 id="alert-title" class="text-2xl font-bold mb-4 text-gradient-primary"></h3>
+             <p id="alert-message" class="text-gray-300 mb-6 text-lg"></p>
+             <button id="alert-ok-btn" class="btn btn-orange">OK</button>
         </div>
     </div>
     
@@ -50,6 +135,7 @@
         const verifyAndRegisterBtn = document.getElementById('verify-and-register-btn');
         const step1 = document.getElementById('step-1');
         const step2 = document.getElementById('step-2');
+        
         const alertModal = document.getElementById('alert-modal');
         const alertTitle = document.getElementById('alert-title');
         const alertMessage = document.getElementById('alert-message');
@@ -57,8 +143,9 @@
 
         const nameInput = document.getElementById('name');
         const phoneInput = document.getElementById('phone');
+        const kycTypeInput = document.getElementById('kyc_type');
         const kycIdInput = document.getElementById('kyc_id');
-        const durationInput = document.getElementById('duration');
+        const durationInput = document.getElementById('visit_duration_days');
         const otpInput = document.getElementById('otp');
 
         function showAlertModal(title, message, callback = null) {
@@ -92,7 +179,7 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    showAlertModal('OTP Sent', result.message);
+                    showAlertModal('OTP Sent', result.message + " (Check your terminal)");
                     step1.classList.add('hidden');
                     step2.classList.remove('hidden');
                 } else {
@@ -107,6 +194,7 @@
             const phone = phoneInput.value;
             const otp = otpInput.value;
             const name = nameInput.value;
+            const kyc_type = kycTypeInput.value;
             const kyc_id = kycIdInput.value;
             const duration = durationInput.value;
 
@@ -131,7 +219,7 @@
                     body: JSON.stringify({
                         name: name,
                         kyc_id: kyc_id,
-                        kyc_type: 'Aadhaar', // Hardcoded as per original
+                        kyc_type: kyc_type,
                         phone: phone,
                         visit_duration_days: parseInt(duration),
                     })
@@ -139,7 +227,7 @@
                 
                 const registerResult = await registerResponse.json();
                 if (registerResponse.ok) {
-                    showAlertModal('Success', 'Registration complete. Redirecting to dashboard...', () => {
+                    showAlertModal('Success', 'Registration complete. Redirecting...', () => {
                         window.location.href = '/user_dashboard';
                     });
                 } else {
