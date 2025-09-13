@@ -1,7 +1,21 @@
-Flask
-Flask-SQLAlchemy
-scikit-learn
-gunicorn
-psycopg2-binary
-python-dotenv
-numpy
+# Flask web framework
+Flask==3.0.3
+
+# SQLAlchemy for database ORM
+Flask-SQLAlchemy==3.1.1
+
+# For AI/ML (IsolationForest)
+scikit-learn==1.5.0
+numpy==1.26.4
+
+# Production WSGI server for Render
+gunicorn==22.0.0
+
+# PostgreSQL database adapter for Render's database
+psycopg2-binary==2.9.9
+
+# For loading .env files during local development
+python-dotenv==1.0.1
+
+# NEW: Twilio SDK for sending SMS
+twilio==9.1.0
