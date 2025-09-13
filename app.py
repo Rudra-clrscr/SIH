@@ -1,5 +1,7 @@
 import os
 import threading
+from dotenv import load_dotenv
+load_dotenv()
 import time
 import random
 import hashlib
@@ -9,6 +11,10 @@ from math import radians, sin, cos, sqrt, atan2
 import numpy as np
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from sklearn.ensemble import IsolationForest
+
+# --- NEW: Twilio Imports ---
+from twilio.rest import Client
+from twilio.base.exceptions import TwilioRestException
 
 # Import database objects from the separate database.py file
 from database import db, Tourist, SafetyZone, Alert, Anomaly
@@ -22,6 +28,17 @@ DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///tourist_data.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+
+
+
+# --- NEW: Twilio Configuration ---
+# Get your credentials from the Twilio console: https://www.twilio.com/console
+# It is highly recommended to set these as environment variables for security.
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
+twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
 
 # --- AI Anomaly Detection Function ---
 def check_for_anomalies():
@@ -98,17 +115,36 @@ def user_dashboard():
 def admin_dashboard(): return render_template('dashboard.html')
 
 # --- API Endpoints ---
+# --- MODIFIED: OTP Endpoint ---
 @app.route('/api/send_otp', methods=['POST'])
 def send_otp():
     data = request.get_json()
     phone = data.get('phone')
     if not phone:
         return jsonify({'error': 'Phone number is required.'}), 400
+    
+    # Ensure phone number is in E.164 format (e.g., +919999988888)
+    if not phone.startswith('+'):
+        return jsonify({'error': 'Phone number must be in E.164 format (e.g., +91xxxxxxxxxx).'}), 400
 
     otp = str(random.randint(100000, 999999))
     otp_storage[phone] = {'otp': otp, 'timestamp': datetime.utcnow()}
-    print(f"--- OTP for {phone}: {otp} ---") 
-    return jsonify({'message': 'OTP sent successfully.'}), 200
+    
+    try:
+        message = twilio_client.messages.create(
+            body=f"Your Astra verification code is: {otp}",
+            from_=TWILIO_PHONE_NUMBER,
+            to=phone
+        )
+        print(f"OTP SMS sent to {phone} via Twilio. SID: {message.sid}")
+        return jsonify({'message': 'OTP sent successfully.'}), 200
+    except TwilioRestException as e:
+        print(f"Twilio Error: {e}")
+        # In case of error, you might not want to expose the exact Twilio error to the client.
+        return jsonify({'error': 'Failed to send OTP. Please check the phone number or server configuration.'}), 500
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return jsonify({'error': 'An internal server error occurred.'}), 500
 
 @app.route('/api/verify_otp', methods=['POST'])
 def verify_otp():
@@ -299,6 +335,8 @@ with app.app_context():
 @app.route('/cron/run-anomaly-check/<secret_key>')
 def run_anomaly_check_cron(secret_key):
     cron_secret = os.environ.get('CRON_SECRET_KEY')
+    
+    
     if not cron_secret or secret_key != cron_secret:
         return jsonify({'error': 'Unauthorized'}), 401
     
