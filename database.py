@@ -15,6 +15,7 @@ class Tourist(db.Model):
     visit_end_date = db.Column(db.DateTime, nullable=False)
     safety_score = db.Column(db.Integer, default=100)
     last_known_location = db.Column(db.String(100), default='Not Available')
+    registration_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     last_updated_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     alerts = relationship("Alert", back_populates="tourist")
