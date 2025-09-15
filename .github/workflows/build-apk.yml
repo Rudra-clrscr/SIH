@@ -39,3 +39,12 @@ jobs:
       - name: Build with Buildozer
         run: |
           buildozer android debug
+        env:
+          BUILDOZER_ANDROID_BUILD_TOOLS_VERSION: "33.0.2"
+          BUILDOZER_ANDROID_API: "33"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-apk
+          path: bin/*.apk
