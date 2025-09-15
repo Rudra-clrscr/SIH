@@ -343,6 +343,13 @@ def run_anomaly_check_cron(secret_key):
     check_for_anomalies()
     return jsonify({'message': 'Anomaly check successfully initiated.'}), 200
 
+# --- NEW FUNCTION TO RUN THE SERVER ---
+def run_server():
+    """Function to run the Flask app, callable from another script."""
+    # NOTE: debug=False is recommended when packaging
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
+
 # This block is for local development only.
 if __name__ == '__main__':
     def anomaly_checker_loop():
@@ -354,4 +361,5 @@ if __name__ == '__main__':
     anomaly_thread = threading.Thread(target=anomaly_checker_loop, daemon=True)
     anomaly_thread.start()
     
-    app.run(debug=True, port=15000)
+    # Call the new run function
+    run_server()
