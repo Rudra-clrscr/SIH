@@ -1,4 +1,4 @@
-[app]
+[[app]
 title = Smart Tourist Safety
 package.name = smarttourist
 package.domain = org.astra.safety
@@ -12,9 +12,5 @@ presplash.filename = %(source.dir)s/splash.png
 
 [android]
 android.permissions = INTERNET, VIBRATE
-android.api = 31
-android.minapi = 21
-android.sdk = 24
-android.ndk = 19c
 android.arch = armeabi-v7a,arm64-v8a
 p4a.branch = master
