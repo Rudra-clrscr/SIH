@@ -19,5 +19,3 @@ python-dotenv==1.0.1
 
 # NEW: Twilio SDK for sending SMS
 twilio==9.1.0
-
-matplotlib
